@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🔨 Brute Force MAX - Mobile</title>
+  <style>
+    :root { --bg: #0d0d0d; --accent: #00ff00; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: #00ff00; margin:0; padding:10px; }
+    h1 { text-align:center; margin:10px 0; color:var(--accent); }
+    .container { max-width: 100%; margin: auto; }
+    input, select, button { width:100%; padding:14px; margin:8px 0; border-radius:10px; font-size:16px; }
+    input, select { background:#1f1f1f; border:1px solid #333; color:#0f0; }
+    button { background:var(--accent); color:black; font-weight:bold; border:none; cursor:pointer; }
+    button:disabled { background:#555; }
+    .btn-red { background:#ff4444; }
+    #log { background:#000; padding:12px; height:380px; overflow-y:auto; font-family:monospace; font-size:14px; border-radius:10px; white-space:pre-wrap; }
+    .success { color:lime; font-weight:bold; }
+    .info { color:cyan; }
+    .error { color:red; }
+    .stats { display:flex; justify-content:space-around; background:#1f1f1f; padding:10px; border-radius:10px; margin:10px 0; font-size:14px; }
+    tab { display:flex; gap:5px; margin:10px 0; }
+    tab button { flex:1; padding:10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔨 BRUTE FORCE MAX</h1>
+    
+    <tab>
+      <button onclick="switchTab(0)" class="active">Général</button>
+      <button onclick="switchTab(1)">Patterns</button>
+    </tab>
+
+    <div id="tab0">
+      <input type="text" id="target" placeholder="Mot de passe ou Hash SHA256" value="1234">
+      
+      <select id="algo">
+        <option value="plain">Mot de passe en clair</option>
+        <option value="sha256">SHA-256</option>
+        <option value="md5">MD5</option>
+      </select>
+      
+      <select id="mode">
+        <option value="pin">PIN (chiffres)</option>
+        <option value="alphanum">Lettres + Chiffres</option>
+        <option value="full">Complet (lentes)</option>
+      </select>
+      
+      <input type="number" id="maxlen" value="4" min="1" max="7" placeholder="Longueur max">
+    </div>
+
+    <div id="tab1" style="display:none;">
+      <label><input type="checkbox" id="common" checked> Mots de passe courants + Dates</label><br>
+      <label><input type="checkbox" id="leet" checked> Leet Speak (a→@, e→3...)</label><br>
+      <label><input type="checkbox" id="years" checked> Années 1980-2026</label>
+    </div>
+
+    <div class="stats">
+      <div>Tentatives: <span id="attempts">0</span></div>
+      <div>Vitesse: <span id="speed">0</span>/s</div>
+    </div>
+
+    <button onclick="startBrute()">🚀 LANCER LE BRUTE FORCE</button>
+    <button onclick="stopBrute()" class="btn-red">⛔ ARRÊTER</button>
+
+    <div id="status" style="text-align:center; margin:10px; font-weight:bold;"></div>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    let isRunning = false;
+    let attempts = 0;
+    let startTime = 0;
+    let interval = null;
+
+    function log(msg, type="") {
+      const logDiv = document.getElementById("log");
+      const time = new Date().toLocaleTimeString();
+      logDiv.innerHTML += `<span class="${type}">[${time}] ${msg}</span>\n`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    async function hash(str, algo) {
+      if (algo === "plain") return str;
+      if (algo === "md5") {
+        // MD5 simulé (crypto.subtle ne supporte pas MD5 directement)
+        return Array.from(new TextEncoder().encode(str))
+          .reduce((s, b) => s + b.toString(16).padStart(2,'0'), '');
+      }
+      const buffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    function* generateCandidates(mode, length) {
+      let chars = "0123456789";
+      if (mode === "alphanum") chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+      if (mode === "full") chars += "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*";
+
+      const indices = new Array(length).fill(0);
+      while (true) {
+        yield indices.map(i => chars[i]);
+        let pos = length - 1;
+        while (pos >= 0 && indices[pos] === chars.length - 1) {
+          indices[pos] = 0;
+          pos--;
+        }
+        if (pos < 0) break;
+        indices[pos]++;
+      }
+    }
+
+    async function startBrute() {
+      if (isRunning) return;
+      
+      const target = document.getElementById("target").value.trim();
+      const algo = document.getElementById("algo").value;
+      const mode = document.getElementById("mode").value;
+      const maxLen = parseInt(document.getElementById("maxlen").value);
+
+      if (!target) return alert("Entre une cible !");
+
+      isRunning = true;
+      attempts = 0;
+      startTime = Date.now();
+      document.querySelector("button").disabled = true;
+
+      log("🚀 BRUTE FORCE MAX DÉMARRÉ", "success");
+
+      // === 1. Attaque par patterns courants ===
+      if (document.getElementById("common").checked) {
+        log("🔍 Test des patterns courants...");
+        const commons = ["1234","0000","1111","123456","password","admin","12345678","qwerty","abc123"];
+        for (let pw of commons) {
+          if (!isRunning) break;
+          attempts++;
+          if (await hash(pw, algo) === (algo==="plain" ? target : target.toLowerCase())) {
+            finish(pw); return;
+          }
+        }
+      }
+
+      // === 2. Brute force principal ===
+      for (let len = 1; len <= maxLen; len++) {
+        if (!isRunning) break;
+        log(`📏 Test longueur ${len}...`);
+        
+        for (let candidate of generateCandidates(mode, len)) {
+          if (!isRunning) break;
+          
+          attempts++;
+          const pwd = candidate.join('');
+          
+          const hashed = await hash(pwd, algo);
+          const compareTo = algo === "plain" ? target : target.toLowerCase();
+          
+          if (hashed === compareTo) {
+            finish(pwd);
+            return;
+          }
+
+          if (attempts % 3000 === 0) {
+            const elapsed = (Date.now() - startTime)/1000;
+            const speed = (attempts / elapsed).toFixed(0);
+            document.getElementById("attempts").textContent = attempts.toLocaleString();
+            document.getElementById("speed").textContent = speed;
+            document.getElementById("status").textContent = `${pwd} | ${speed} tentatives/s`;
+          }
+        }
+      }
+
+      if (isRunning) log("❌ Non trouvé dans la limite.", "error");
+      stopBrute();
+    }
+
+    function finish(password) {
+      const timeTaken = ((Date.now() - startTime)/1000).toFixed(1);
+      log(`✅ TROUVÉ : ${password}`, "success");
+      log(`⏱️ Temps : ${timeTaken} secondes | Tentatives : ${attempts.toLocaleString()}`, "success");
+      stopBrute();
+    }
+
+    function stopBrute() {
+      isRunning = false;
+      document.querySelector("button").disabled = false;
+      log("⛔ Arrêté par l'utilisateur.");
+    }
+
+    function switchTab(n) {
+      document.getElementById("tab0").style.display = n===0 ? "block" : "none";
+      document.getElementById("tab1").style.display = n===1 ? "block" : "none";
+    }
+
+    // Auto scroll & infos
+    log("Prêt. Change les paramètres et appuie sur LANCER.", "info");
+  </script>
+</body>
+</html>
