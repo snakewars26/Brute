@@ -268,8 +268,8 @@ button.it:hover{background:rgba(47,107,42,.14);transform:translateY(-1px);box-sh
 <button id="pz" aria-label="Pause" title="Pause (Échap)">⏸</button>
 <div id="pm" hidden><div class="box"><h2>⏸ Pause</h2><button class="it" id="pres">▶ Reprendre</button><button class="it" id="pmus">🎵</button><button class="it" id="psnd">🔊</button><button class="it" id="ptit">🏠 Retour au titre</button><p class="sm">Flèches/WASD : bouger · J : épée · Espace : dash · E : coffre/boutique · B : bombe · F : arc · R : potion · Tab : sac · M : son<br>📱 Glisse pour bouger · tape pour attaquer</p></div></div>
 <div id="vic" hidden><div class="box"><h2>🏆 Victoire !</h2><p id="vtxt"></p><button class="it" id="vtit">🏠 Retour au titre</button></div></div>
-<div id="shop" hidden><div id="spanel"><h2>🛒 Marchand</h2><p id="sgems"></p><div id="sitems"></div><button class="it wide" id="sclose">Fermer</button></div></div>
-<div id="title"><div id="tbox"><h1>⚔️ Petit héros</h1><p id="tsub"></p><button class="it" id="tgo"></button><button class="it" id="tnew">↺ Nouvelle partie</button><button class="it" id="tq"></button><div id="tset"><button class="it" id="tm" aria-label="Musique"></button><button class="it" id="tp" aria-label="Position des boutons"></button><button class="it" id="tz" aria-label="Taille des boutons"></button></div><p class="sm">Flèches/WASD : bouger · Clic/J ou ⚔️ : épée · Espace : dash · E : coffre/boutique · B : bombe · F : arc · R : potion · Tab : sac · M : son<br>PV pleins = rayon d'épée !<br>📱 Glisse le doigt n'importe où pour bouger · tape pour attaquer ou ouvrir un coffre · barre du bas : arme · bouton 💨 : dash</p></div></div>
+<div id="shop" hidden><div id="spanel"><h2>🛒 Marchand</h2><p id="sgems"></p><div id="sitems"></div><button class="it wide" id="sclose" aria-label="Fermer le marchand">Fermer</button></div></div>
+<div id="title"><div id="tbox"><h1>⚔️ Petit héros</h1><p id="tsub"></p><button class="it" id="tgo" aria-label="Jouer"></button><button class="it" id="tnew" aria-label="Nouvelle partie">↺ Nouvelle partie</button><button class="it" id="tq" aria-label="Qualité graphique"></button><div id="tset"><button class="it" id="tm" aria-label="Musique"></button><button class="it" id="tp" aria-label="Position des boutons"></button><button class="it" id="tz" aria-label="Taille des boutons"></button></div><p class="sm">Flèches/WASD : bouger · Clic/J ou ⚔️ : épée · Espace : dash · E : coffre/boutique · B : bombe · F : arc · R : potion · Tab : sac · M : son<br>PV pleins = rayon d'épée !<br>📱 Glisse le doigt n'importe où pour bouger · tape pour attaquer ou ouvrir un coffre · barre du bas : arme · bouton 💨 : dash</p></div></div>
 <script>
 /* =====================================================================
    PETIT HÉROS v12 — sommaire du script
@@ -1905,7 +1905,7 @@ let fadeT=0,ban=0,lowT=0;const pk=[],beams=[];
 const HS=[[1,0,2,1],[4,0,2,1],[0,1,7,2],[1,3,5,1],[2,4,3,1],[3,5,1,1]];
 function heart(x,y,f){HS.forEach(a=>R(x+a[0],y+a[1],a[2],a[3],'#3a0d14'));
   if(f>0){ctx.save();ctx.beginPath();ctx.rect(x,y,7*f,6);ctx.clip();HS.forEach(a=>R(x+a[0],y+a[1],a[2],a[3],'#e8343c'));R(x+1,y+1,1,1,'#ff9aa0');ctx.restore()}}
-function dieFx(e){if(!e.dummy&&!e.sm&&!train)run.kills++;burst(e.x+8,e.y+10,['#eef0e6','#b8bcae'],e.boss?22:10);sfx(420,80,.2,'triangle',.06);if(Math.random()<.35||e.boss){const q=Math.random();pk.push({x:e.x+8,y:e.y+10,t:0,k:e.boss||q<.5?undefined:q<.75?'b':'a'})}if(Math.random()<.5||e.boss)pk.push({x:e.x+12,y:e.y+10,t:0,k:'g',v:e.boss?5:1+(lvl/6|0)})}
+function dieFx(e){if(!e.dummy&&!e.sm&&!train){run.kills++;A.k++}burst(e.x+8,e.y+10,['#eef0e6','#b8bcae'],e.boss?22:10);sfx(420,80,.2,'triangle',.06);if(Math.random()<.35||e.boss){const q=Math.random();pk.push({x:e.x+8,y:e.y+10,t:0,k:e.boss||q<.5?undefined:q<.75?'b':'a'})}if(Math.random()<.5||e.boss)pk.push({x:e.x+12,y:e.y+10,t:0,k:'g',v:e.boss?5:1+(lvl/6|0)})}
 function updBeams(dt){
   for(let i=beams.length-1;i>=0;i--){const b=beams[i],a=Math.max(1,stat().atk)+(b.ar?2:0);b.x+=b.vx*dt;b.y+=b.vy*dt;b.l-=dt;let dead=b.l<=0||solidAt(b.x,b.y);
     if(!dead)for(const e of enemies){if(Math.abs(e.x+8-b.x)<9&&Math.abs(e.y+10-b.y)<9){e.hp-=a;e.hit=.2;e.vx=b.vx*.5;e.vy=b.vy*.5;dmgFx(e.x+8,e.y,a,'#bff');sfx(200,70,.09,'square',.05);if(e.dummy){e.hp=e.max;e.vx=e.vy=0}else if(e.hp<=0)dieFx(e);dead=true;break}}
@@ -2545,8 +2545,34 @@ $('psnd').addEventListener('click',()=>{setMute(!muted);pmSync()});
 $('ptit').addEventListener('click',()=>{save();$('pm').hidden=true;showTitle(true)});
 function showVictory(){wonOnce=true;try{localStorage.setItem('petit-heros-won','1')}catch(e){}state='menu';$('vtxt').textContent='Tu as vaincu le boss du niveau 20 ! Le royaume est sauvé. Fin de l’aventure, bravo petit héros !';$('vic').hidden=false;sfx(400,1200,.5,'triangle',.06)}
 $('vtit').addEventListener('click',()=>{$('vic').hidden=true;newGame();noSave=true;try{localStorage.removeItem(SAVE)}catch(e){}showTitle(false)});
+// ---- Succès, tutoriel, manette ----
+const A={k:0,done:[]};try{Object.assign(A,JSON.parse(localStorage.getItem('petit-heros-ach')||'{}'))}catch(e){}
+if(!Array.isArray(A.done))A.done=[];
+const ACH=[
+ ['first','🗡️ Premier sang',()=>A.k>=1],['k50','⚔️ Chasseur (50 ennemis)',()=>A.k>=50],['k200','💀 Légende (200 ennemis)',()=>A.k>=200],
+ ['gem','💎 Riche (100 rubis)',()=>gems>=100],['l5','🌲 Niveau 5 atteint',()=>lvl>=5],['l10','🏰 Niveau 10 atteint',()=>lvl>=10],['win','🏆 Sauveur du royaume',()=>wonOnce]];
+let achT=0;
+function achTick(){if(++achT%30)return;for(const[a,n,f]of ACH)if(!A.done.includes(a)&&f()){A.done.push(a);try{localStorage.setItem('petit-heros-ach',JSON.stringify(A))}catch(e){}say('Succès : '+n);sfx(700,1400,.25,'triangle',.05);break}}
+addEventListener('pagehide',()=>{try{localStorage.setItem('petit-heros-ach',JSON.stringify(A))}catch(e){}});
+let tut=0;try{if(localStorage.getItem('petit-heros-tut')==='1')tut=9}catch(e){}
+let tutT=0,tutHx=null;
+function tutTick(dt){if(tut>=9||train||dg||lvl!==1||state!=='play')return;tutT+=dt;
+ if(tutHx===null)tutHx=hero.x;
+ if(tut===0&&tutT>1.2){say('Glisse le doigt ou utilise les flèches pour bouger');tut=1}
+ else if(tut===1&&Math.abs(hero.x-tutHx)>24){say('Bien ! Tape l\'écran ou appuie sur J pour attaquer');tut=2;tutT=0}
+ else if(tut===2&&atk>0){say('Ouvre un coffre : approche-toi et touche-le (E)');tut=3;tutT=0}
+ else if(tut===3&&chests.some(k=>k.open)){say('Trouve tous les coffres pour faire apparaître le boss !');tut=9;try{localStorage.setItem('petit-heros-tut','1')}catch(e){}}}
+const gpPrev={};
+function gpTick(){const g=(navigator.getGamepads?navigator.getGamepads():[])[0]||[...(navigator.getGamepads?navigator.getGamepads():[])].find(x=>x);if(!g)return;
+ const b=i=>!!(g.buttons[i]&&g.buttons[i].pressed),ax=(i)=>g.axes[i]||0,ed=(i)=>{const v=b(i),r=v&&!gpPrev[i];gpPrev[i]=v;return r};
+ const dx=ax(0)+(b(15)?1:0)-(b(14)?1:0),dy=ax(1)+(b(13)?1:0)-(b(12)?1:0),pa=ed(0),pb=ed(1),px=ed(2),py=ed(3),pl=ed(4),pr=ed(5),ps=ed(9);
+ if(state==='title'){if(pa||ps)startGame();return}
+ if(state==='menu'){if(!$('pm').hidden&&(ps||pb))closePause();return}
+ if(state!=='play'){if(state==='dead'&&pa)revive();return}
+ const mv=Math.abs(dx)>.35||Math.abs(dy)>.35;if(mv||gpPrev.mv){keys.left=dx<-.35?1:0;keys.right=dx>.35?1:0;keys.up=dy<-.35?1:0;keys.down=dy>.35?1:0}gpPrev.mv=mv;
+ if(pa)useSel();if(pb)doDash();if(px)placeBomb();if(py)shootBow();if(pl)selWeapon((sel+2)%3);if(pr)selWeapon((sel+1)%3);if(ps)openPause()}
 let last=performance.now();
-function loop(t){requestAnimationFrame(loop);if(t-last<12.5)return;const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);render();refreshSkills()}
+function loop(t){requestAnimationFrame(loop);if(t-last<12.5)return;const dt=Math.min(.05,(t-last)/1000);last=t;gpTick();update(dt);tutTick(dt);achTick();render();refreshSkills()}
 requestAnimationFrame(loop);
 
 // ---- Contrôles ----
