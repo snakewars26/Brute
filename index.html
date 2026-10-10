@@ -85,8 +85,8 @@ button:focus-visible,.it:focus-visible{outline:3px solid var(--gold);outline-off
   filter:drop-shadow(0 2px 3px rgba(0,0,0,.7));
 }
 #pz{position:fixed;z-index:4;padding:0;width:30px;height:26px;border-radius:6px;font-size:13px;color:#fff;background:var(--hud-glass);border:1px solid var(--hud-edge)}
-#pm,#vic{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
-#pm .box,#vic .box{display:flex;flex-direction:column;gap:8px;min-width:230px;max-width:86vw;padding:16px;border-radius:12px;background:var(--paper);color:var(--paper-ink);border:2px solid var(--paper-line);text-align:center}
+#pm,#vic,#go{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
+#pm .box,#vic .box,#go .box{display:flex;flex-direction:column;gap:8px;min-width:230px;max-width:86vw;padding:16px;border-radius:12px;background:var(--paper);color:var(--paper-ink);border:2px solid var(--paper-line);text-align:center}
 #bagb{left:0;top:0;width:46px;height:46px;border-radius:0 0 14px 0;font-size:1.9rem;line-height:1}
 #trb,#mb{width:30px;height:26px;border-radius:6px;font-size:13px}
 
@@ -267,6 +267,7 @@ button.it:hover{background:rgba(47,107,42,.14);transform:translateY(-1px);box-sh
 <div id="inv" hidden><div id="panel"><h2>Sac d'équipement</h2><div class="cols"><section><h3>Équipé</h3><div id="eq"></div><p id="st"></p></section><section><h3>Sac</h3><div id="bag"></div></section></div><p class="sm">Clique un objet pour l'équiper, l'utiliser ou le retirer · ⭐ fusionne 2 objets identiques (max 5★, +30 % par étoile) · 🗑️ supprime · Tab pour fermer</p><button class="it act" id="closeinv">✕ Fermer</button> <button class="it act" id="sortb">↕ Trier</button> <button class="it act" id="junkb">🧹 Jeter les inutiles</button> <button class="it act danger" id="newg">↺ Nouvelle partie</button></div></div>
 <button id="pz" aria-label="Pause" title="Pause (Échap)">⏸</button>
 <div id="pm" hidden><div class="box"><h2>⏸ Pause</h2><button class="it" id="pres">▶ Reprendre</button><button class="it" id="pmus">🎵</button><button class="it" id="psnd">🔊</button><button class="it" id="ptit">🏠 Retour au titre</button><p class="sm">Flèches/WASD : bouger · J : épée · Espace : dash · E : coffre/boutique · B : bombe · F : arc · R : potion · Tab : sac · M : son<br>📱 Glisse pour bouger · tape pour attaquer</p></div></div>
+<div id="go" hidden><div class="box"><h2>💀 Game over</h2><p id="gtxt"></p><button class="it" id="gnew">↺ Recommencer depuis le début</button><button class="it" id="gtit">🏠 Retour au titre</button></div></div>
 <div id="vic" hidden><div class="box"><h2>🏆 Victoire !</h2><p id="vtxt"></p><button class="it" id="vtit">🏠 Retour au titre</button></div></div>
 <div id="shop" hidden><div id="spanel"><h2>🛒 Marchand</h2><p id="sgems"></p><div id="sitems"></div><button class="it wide" id="sclose" aria-label="Fermer le marchand">Fermer</button></div></div>
 <div id="title"><div id="tbox"><h1>⚔️ Petit héros</h1><p id="tsub"></p><button class="it" id="tgo" aria-label="Jouer"></button><button class="it" id="tnew" aria-label="Nouvelle partie">↺ Nouvelle partie</button><button class="it" id="tq" aria-label="Qualité graphique"></button><div id="tset"><button class="it" id="tm" aria-label="Musique"></button><button class="it" id="tp" aria-label="Position des boutons"></button><button class="it" id="tz" aria-label="Taille des boutons"></button></div><p class="sm">Flèches/WASD : bouger · Clic/J ou ⚔️ : épée · Espace : dash · E : coffre/boutique · B : bombe · F : arc · R : potion · Tab : sac · M : son<br>PV pleins = rayon d'épée !<br>📱 Glisse le doigt n'importe où pour bouger · tape pour attaquer ou ouvrir un coffre · barre du bas : arme · bouton 💨 : dash</p></div></div>
@@ -297,6 +298,7 @@ const BIO=[
 {n:'Enfer',g:['#4a1a1a','#3a1212','#5e2222'],p:['#3a2a2a','#e8541c','#ff9a30','#1a0e0e'],f:['','#ff5a1f','#ffb03a','#ff3030']},
 {n:'Royaume céleste',g:['#e8f2ff','#d2e4fa','#f6faff'],p:['#f1e3a8','#e0cf86','#fff6c8','#c9b565'],f:['','#ffd23a','#ffffff','#9fe0ff']}];
 const BC=[['#3fa84a','#6ad063','#1f5e2a','#e0454f'],['#7b4fc0','#d6c0ff','#7ee8ff'],['#8a5a2e','#5b3a1e','#a9743c'],['#6a8a6a','#d8d0c0','#3a5a40'],['#6a6a50','#9a8a60','#c4572a'],['#ff5a1f','#ffb03a','#6e1a1a'],['#ffd23a','#ffffff','#9fe0ff']];
+const LIVES=5;let lives=LIVES;
 let camX=0,camY=0,endR=3,bm=0,lvl=1,enemies=[],chests=[],portal=null,state='play',msg='',msgT=0,retry=0,doorR=0,dg=null,dgIn=null,dgDone=false,dgCd=0,dgMem=null;
 let seed=11;const rnd=()=>(seed=(seed*1664525+1013904223)%4294967296)/4294967296;
 let RT=null;const R=(x,y,w,h,c,k=RT||ctx)=>{k.fillStyle=c;k.fillRect(x,y,w,h)};
@@ -695,7 +697,7 @@ function hurt(e){
   const dm=Math.max(1,e.dmg-stat().def);hero.hp-=dm;if(!train){run.hits++;buzz(dm>=8?[40,30,60]:30)}sfx(130,40,.2,'sawtooth',.07);shk=Math.max(shk,.12);if(train)dmgFx(hero.x+8,hero.y,dm,'#ff6a6a');hero.inv=.9;e.cd=.8;if(e.kind===3){say('Le zombie ameute les autres !');enemies.forEach(o=>{if(o!==e&&Math.hypot(o.x-e.x,o.y-e.y)<90)o.al=6})}
   const a=Math.atan2(hero.y-e.y,hero.x-e.x),nx=hero.x+Math.cos(a)*8,ny=hero.y+Math.sin(a)*8;
   if(free(nx,hero.y))hero.x=nx;if(free(hero.x,ny))hero.y=ny;
-  if(hero.hp<=0){if(train)hero.hp=stat().max;else{hero.hp=0;state='dead';buzz(250)}}
+  if(hero.hp<=0){if(train)hero.hp=stat().max;else{hero.hp=0;buzz(250);lives--;if(lives<=0)gameOver();else{save();state='dead'}}}
 }
 function updEnemies(dt){
   enemies.forEach(e=>{
@@ -861,7 +863,7 @@ function placeUI(){
   {const sk=$('skills').getBoundingClientRect();msgY=sk.height?Math.max(60,Math.min(222,Math.floor((sk.top-r.top)/sc)-16)):222}
   b.style.left=(r.left+78*sc)+'px';b.style.top=(r.top+4*sc)+'px';const mb=$('mb');mb.style.left=(r.left+78*sc+30)+'px';mb.style.top=b.style.top;const pz=$('pz');pz.style.left=(r.left+78*sc+60)+'px';pz.style.top=b.style.top;
   p.style.left=(r.left+4*sc)+'px';p.style.top=(r.top+26*sc)+'px';
-  const rows=Math.ceil(Math.ceil(stat().max/2)/8),bb=$('bagb');bb.style.left=(r.left+4*sc)+'px';bb.style.top=(r.top+(4+38+rows*8+3)*sc)+'px';
+  const rows=Math.ceil(Math.ceil(stat().max/2)/8),bb=$('bagb');bb.style.left=(r.left+4*sc)+'px';bb.style.top=(r.top+(4+47+rows*8+3)*sc)+'px';
 }
 addEventListener('resize',placeUI);addEventListener('orientationchange',()=>setTimeout(placeUI,200));placeUI();
 
@@ -1831,12 +1833,12 @@ function overlay(){
    if(Math.floor(performance.now()/300)%2)R(mx+((hero.x+8)/8|0)-1,my+((hero.y+10)/8|0)-1,3,3,'#fff')}
   if(hero.inv>.7)R(0,0,320,240,'rgba(200,0,0,.18)');
   const k=state==='play'&&nearChest();
-  const t=state==='pause'?'⏸ Pause · touche pour reprendre':state==='dead'?'Tu es tombé ! Touche l\'écran : nouvelle tentative':msgT>0?msg:k?(k.boss&&enemies.includes(k.boss)?'Un gardien protège ce coffre':'Approche-toi pour ouvrir'):'';
+  const t=state==='pause'?'⏸ Pause · touche pour reprendre':state==='dead'?'Tu es tombé ! '+(lives===1?'Dernière vie':lives+' vies restantes')+' · touche pour retenter':msgT>0?msg:k?(k.boss&&enemies.includes(k.boss)?'Un gardien protège ce coffre':'Approche-toi pour ouvrir'):'';
   if(t){ctx.font='bold 9px monospace';ctx.textAlign='center';const w=ctx.measureText(t).width+8;R(160-w/2,msgY,w,13,'rgba(0,0,0,.65)');ctx.fillStyle='#fff';ctx.fillText(t,160,msgY+10)}
   {const S=stat(),n=Math.ceil(S.max/2),rows=Math.ceil(n/8),hp=Math.max(0,hero.hp);
-  R(4,4,Math.min(n,8)*8+6,38+rows*8,'rgba(0,0,0,.5)');ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;ctx.strokeRect(4.5,4.5,Math.min(n,8)*8+5,27+rows*8);ctx.font='bold 8px monospace';ctx.textAlign='left';ctx.fillStyle='#fff';ctx.fillText('Niv. '+lvl,8,13);
+  R(4,4,Math.min(n,8)*8+6,47+rows*8,'rgba(0,0,0,.5)');ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;ctx.strokeRect(4.5,4.5,Math.min(n,8)*8+5,27+rows*8);ctx.font='bold 8px monospace';ctx.textAlign='left';ctx.fillStyle='#fff';ctx.fillText('Niv. '+lvl,8,13);
   for(let i=0;i<n;i++)heart(8+(i%8)*8,17+(i/8|0)*8,Math.max(0,Math.min(1,(hp-i*2)/2)));
-  const dy=17+rows*8;ctx.fillStyle='#fff';ctx.fillText('💣'+bombs+'  🏹'+arrows+(hasKey?'  🗝️':''),8,dy+11);ctx.fillText('💎 '+gems,8,dy+21);R(8,dy,34,2,'rgba(0,0,0,.6)');R(8,dy,Math.round(34*(1-Math.max(0,dcd)/.8)),2,dcd>0?'#6fa8ff':'#9fe8ff');
+  const dy=17+rows*8;ctx.fillStyle='#fff';ctx.fillText('💣'+bombs+'  🏹'+arrows+(hasKey?'  🗝️':''),8,dy+11);ctx.fillText('💎 '+gems,8,dy+21);ctx.font='bold 6px monospace';ctx.fillStyle='#ffd23f';ctx.fillText('VIES',8,dy+30);for(let i=0;i<LIVES;i++)R(28+i*6,dy+25,4,5,i<lives?'#ffd23f':'rgba(255,255,255,.2)');ctx.font='bold 8px monospace';ctx.fillStyle='#fff';R(8,dy,34,2,'rgba(0,0,0,.6)');R(8,dy,Math.round(34*(1-Math.max(0,dcd)/.8)),2,dcd>0?'#6fa8ff':'#9fe8ff');
   if(ban>0&&!train){const tx=dg?'Donjon · '+BIO[bm].n:BIO[bm].n+' · '+lvl;ctx.globalAlpha=Math.min(1,ban);ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(tx,161,81);ctx.fillStyle='#ffe97a';ctx.fillText(tx,160,80);ctx.globalAlpha=1}
   if(fadeT>0)R(0,0,320,240,'rgba(0,0,0,'+Math.min(1,fadeT/.6)+')')}
 }
@@ -1881,7 +1883,7 @@ function setMute(m){muted=m;$('mb').textContent=m?'🔇':'🔊';try{localStorage
 $('mb').addEventListener('click',e=>{e.currentTarget.blur();setMute(!muted)});setMute(muted);
 function save(){
   if(noSave||train||state==='dead')return;
-  try{localStorage.setItem(SAVE,JSON.stringify({v:2,lvl,hp:hero.hp,eq,bag,retry,bombs,arrows,gems,up,open:(dg?dg.sv.chests:chests).reduce((a,k,i)=>k.open?a.concat(i):a,[]),key:hasKey,dgd:dgDone}))}catch(e){}
+  try{localStorage.setItem(SAVE,JSON.stringify({v:2,lvl,lives,hp:hero.hp,eq,bag,retry,bombs,arrows,gems,up,open:(dg?dg.sv.chests:chests).reduce((a,k,i)=>k.open?a.concat(i):a,[]),key:hasKey,dgd:dgDone}))}catch(e){}
 }
 function loadGame(){
   try{
@@ -1892,7 +1894,7 @@ function loadGame(){
      s.eq={weapon:okI(s.eq.weapon,'weapon'),armor:okI(s.eq.armor,'armor'),ring:okI(s.eq.ring,'ring')};s.bag=s.bag.map(i=>okI(i)).filter(Boolean)}
     Object.assign(eq,{weapon:s.eq.weapon||null,armor:s.eq.armor||null,ring:s.eq.ring||null});
     bag.length=0;s.bag.slice(0,40).forEach(addBag);
-    retry=s.retry|0;pendOpen=s;bombs=s.bombs==null?3:Math.max(0,Math.min(9,s.bombs|0));arrows=s.arrows==null?10:Math.max(0,Math.min(30,s.arrows|0));gems=Math.max(0,Math.min(99999,s.gems|0));for(const k in up)up[k]=Math.max(0,Math.min(UPM,(s.up&&s.up[k])|0));
+    retry=s.retry|0;lives=s.lives==null?LIVES:Math.max(1,Math.min(LIVES,s.lives|0));pendOpen=s;bombs=s.bombs==null?3:Math.max(0,Math.min(9,s.bombs|0));arrows=s.arrows==null?10:Math.max(0,Math.min(30,s.arrows|0));gems=Math.max(0,Math.min(99999,s.gems|0));for(const k in up)up[k]=Math.max(0,Math.min(UPM,(s.up&&s.up[k])|0));
     hero.hp=Math.max(1,Math.min(stat().max,+s.hp||stat().max));
     return s;
   }catch(e){return null}
@@ -1968,7 +1970,7 @@ function tapAt(cx,cy){
  const rel=()=>{keys.left=keys.right=keys.up=keys.down=0;ring.hidden=true};
  document.body.addEventListener('pointerdown',e=>{
   if(e.button===2&&!e.target.closest('#inv,#trn')){e.preventDefault();doDash();return}
-  if(e.button!==0||e.target.closest('button,#inv,#trn,#title,#pm,#vic'))return;
+  if(e.button!==0||e.target.closest('button,#inv,#trn,#title,#pm,#vic,#go'))return;
   if(e.pointerType==='mouse'){tapAt(e.clientX,e.clientY);return}
   if(pid===null){pid=e.pointerId;ox=sx=e.clientX;oy=sy=e.clientY;t0=performance.now();moved=false}
   else tapAt(e.clientX,e.clientY)});
@@ -1999,7 +2001,7 @@ function refreshSkills(){
   {const rdy=state==='dead'||(state==='play'&&(nearShop()||!!nearChest()));$('sk4').classList.toggle('zero',!rdy);$('sk4').classList.toggle('ready',rdy)}
   $('bagb').style.display=train?'none':''
 }
-function showTitle(has){state='title';$('title').hidden=false;$('tsub').textContent=(has?'Niveau '+lvl+' · reprise de ta partie':wonOnce?'Aventure terminée · bravo !':'Une aventure en 20 niveaux')+(best>1?' · Record : niveau '+best:'');$('tgo').textContent=has?'▶ Continuer':'▶ Jouer';$('tnew').hidden=!has}
+function showTitle(has){state='title';$('title').hidden=false;$('tsub').textContent=(has?'Niveau '+lvl+' · reprise de ta partie':wonOnce?'Aventure terminée · bravo !':'Une aventure en 20 niveaux · 5 vies')+(best>1?' · Record : niveau '+best:'');$('tgo').textContent=has?'▶ Continuer':'▶ Jouer';$('tnew').hidden=!has}
 function startGame(){noSave=false;$('title').hidden=true;state='play'}
 $('tgo').addEventListener('click',startGame);
 $('rot').addEventListener('click',e=>{e.currentTarget.hidden=true});
@@ -2009,7 +2011,7 @@ function newGame(){
   Object.assign(eq,{weapon:{slot:'weapon',tier:0,name:'Épée en bois',atk:1},armor:null,ring:null});
   bag.length=0;bag.push(potion());
   up.atk=up.def=up.hp=0;gems=0;run.kills=run.hits=run.t=0;
-  lvl=1;retry=0;bombs=3;arrows=10;hero.hp=12;bm=0;
+  lvl=1;retry=0;lives=LIVES;bombs=3;arrows=10;hero.hp=12;bm=0;
   for(const k in keys)keys[k]=0;
   startLevel(1);state='play';
 }
@@ -2545,6 +2547,9 @@ $('pz').addEventListener('click',openPause);$('pres').addEventListener('click',c
 $('pmus').addEventListener('click',()=>{musOn=!musOn;try{localStorage.setItem('petit-heros-mus',musOn?'1':'0')}catch(e){}pmSync()});
 $('psnd').addEventListener('click',()=>{setMute(!muted);pmSync()});
 $('ptit').addEventListener('click',()=>{save();$('pm').hidden=true;showTitle(true)});
+function gameOver(){state='over';for(const k in keys)keys[k]=0;try{localStorage.removeItem(SAVE)}catch(e){}noSave=true;$('gtxt').textContent='Tu as perdu tes '+LIVES+' vies au niveau '+lvl+'. Tout est à recommencer depuis le début !';$('go').hidden=false;sfx(300,40,.8,'sawtooth',.08);buzz([100,60,200])}
+$('gnew').addEventListener('click',()=>{$('go').hidden=true;newGame()});
+$('gtit').addEventListener('click',()=>{$('go').hidden=true;newGame();noSave=true;try{localStorage.removeItem(SAVE)}catch(e){}showTitle(false)});
 function showVictory(){wonOnce=true;try{localStorage.setItem('petit-heros-won','1')}catch(e){}state='menu';$('vtxt').textContent='Tu as vaincu le boss du niveau 20 ! Le royaume est sauvé. Fin de l’aventure, bravo petit héros !';$('vic').hidden=false;sfx(400,1200,.5,'triangle',.06)}
 $('vtit').addEventListener('click',()=>{$('vic').hidden=true;newGame();noSave=true;try{localStorage.removeItem(SAVE)}catch(e){}showTitle(false)});
 // ---- Succès, tutoriel, manette ----
@@ -2581,6 +2586,7 @@ requestAnimationFrame(loop);
 const KM={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down'};
 addEventListener('keydown',e=>{
   if(state==='pause'){state='play';e.preventDefault();return}
+  if(state==='over')return;
   if(state==='menu'){if(!$('pm').hidden&&['Escape','KeyP'].includes(e.code)){closePause();e.preventDefault()}return}
   if(state==='play'&&(e.code==='Escape'||e.code==='KeyP')){openPause();e.preventDefault();return}
   if(state==='title'){if(e.code==='Enter'||e.code==='Space'){startGame();e.preventDefault()}return}
