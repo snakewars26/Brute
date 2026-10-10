@@ -84,6 +84,9 @@ button:focus-visible,.it:focus-visible{outline:3px solid var(--gold);outline-off
   background:var(--hud-glass);border:1px solid var(--hud-edge);
   filter:drop-shadow(0 2px 3px rgba(0,0,0,.7));
 }
+#pz{position:fixed;z-index:4;padding:0;width:30px;height:26px;border-radius:6px;font-size:13px;color:#fff;background:var(--hud-glass);border:1px solid var(--hud-edge)}
+#pm,#vic{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
+#pm .box,#vic .box{display:flex;flex-direction:column;gap:8px;min-width:230px;max-width:86vw;padding:16px;border-radius:12px;background:var(--paper);color:var(--paper-ink);border:2px solid var(--paper-line);text-align:center}
 #bagb{left:0;top:0;width:46px;height:46px;border-radius:0 0 14px 0;font-size:1.9rem;line-height:1}
 #trb,#mb{width:30px;height:26px;border-radius:6px;font-size:13px}
 
@@ -262,6 +265,9 @@ button.it:hover{background:rgba(47,107,42,.14);transform:translateY(-1px);box-sh
 <button id="mb" aria-label="Son" title="Son (M)">🔊</button>
 <div id="trn" hidden><div class="row" id="trs"></div><div class="row" id="trx"></div><div id="trt"></div><div class="row" id="trbs"></div><div class="row"><button id="trboss">✖ Boss</button><button class="q" id="trq">Quitter</button></div></div>
 <div id="inv" hidden><div id="panel"><h2>Sac d'équipement</h2><div class="cols"><section><h3>Équipé</h3><div id="eq"></div><p id="st"></p></section><section><h3>Sac</h3><div id="bag"></div></section></div><p class="sm">Clique un objet pour l'équiper, l'utiliser ou le retirer · ⭐ fusionne 2 objets identiques (max 5★, +30 % par étoile) · 🗑️ supprime · Tab pour fermer</p><button class="it act" id="closeinv">✕ Fermer</button> <button class="it act" id="sortb">↕ Trier</button> <button class="it act" id="junkb">🧹 Jeter les inutiles</button> <button class="it act danger" id="newg">↺ Nouvelle partie</button></div></div>
+<button id="pz" aria-label="Pause" title="Pause (Échap)">⏸</button>
+<div id="pm" hidden><div class="box"><h2>⏸ Pause</h2><button class="it" id="pres">▶ Reprendre</button><button class="it" id="pmus">🎵</button><button class="it" id="psnd">🔊</button><button class="it" id="ptit">🏠 Retour au titre</button><p class="sm">Flèches/WASD : bouger · J : épée · Espace : dash · E : coffre/boutique · B : bombe · F : arc · R : potion · Tab : sac · M : son<br>📱 Glisse pour bouger · tape pour attaquer</p></div></div>
+<div id="vic" hidden><div class="box"><h2>🏆 Victoire !</h2><p id="vtxt"></p><button class="it" id="vtit">🏠 Retour au titre</button></div></div>
 <div id="shop" hidden><div id="spanel"><h2>🛒 Marchand</h2><p id="sgems"></p><div id="sitems"></div><button class="it wide" id="sclose">Fermer</button></div></div>
 <div id="title"><div id="tbox"><h1>⚔️ Petit héros</h1><p id="tsub"></p><button class="it" id="tgo"></button><button class="it" id="tnew">↺ Nouvelle partie</button><button class="it" id="tq"></button><div id="tset"><button class="it" id="tm" aria-label="Musique"></button><button class="it" id="tp" aria-label="Position des boutons"></button><button class="it" id="tz" aria-label="Taille des boutons"></button></div><p class="sm">Flèches/WASD : bouger · Clic/J ou ⚔️ : épée · Espace : dash · E : coffre/boutique · B : bombe · F : arc · R : potion · Tab : sac · M : son<br>PV pleins = rayon d'épée !<br>📱 Glisse le doigt n'importe où pour bouger · tape pour attaquer ou ouvrir un coffre · barre du bas : arme · bouton 💨 : dash</p></div></div>
 <script>
@@ -724,7 +730,7 @@ function portalCheck(dt){
   if(train||dg)return;
   if(secR&&!secR.opened&&!secR.hint&&Math.hypot(secR.kc*T+8-(hero.x+8),secR.kr*T+8-(hero.y+10))<44){secR.hint=true;say('Ce rocher fissuré sonne creux… une bombe ?');buzz(15)}
   if(!portal&&chests.every(k=>k.open||k.sec)){portal={x:(W-2)*T+8,y:endR*T+8,t:0};spawnBoss()}
-  if(portal){portal.t+=dt;if(!fb&&Math.hypot(hero.x+8-portal.x,hero.y+11-portal.y)<9){retry=0;sfx(300,900,.3,'sine');const m=levelDone();startLevel(lvl+1);heal(4);say(m)}}
+  if(portal){portal.t+=dt;if(!fb&&Math.hypot(hero.x+8-portal.x,hero.y+11-portal.y)<9){retry=0;sfx(300,900,.3,'sine');const m=levelDone(),won=lvl===20;startLevel(lvl+1);heal(4);say(m);if(won)showVictory()}}
 }
 function startLevel(n){combatCombo=0;combatComboTimer=0;const ob=bm;lvl=n;dg=null;dgMem=null;dgCd=0;buildLevel();dgDone=false;hero.x=2*T;hero.y=(H-5)*T-8;hero.dir='r';atk=0;parts.length=0;pk.length=0;beams.length=0;bombsL.length=0;hasKey=false;hero.slow=0;fadeT=.8;ban=2.6;fb=null;bul.length=zones.length=pools.length=evs.length=0;dash=dcd=0;state='play';hero.inv=1;if(!train&&n>best){best=n;try{localStorage.setItem('petit-heros-best',n)}catch(e){}}if(pendOpen){const o=pendOpen;pendOpen=null;if(o.lvl===n){(o.open||[]).forEach(i=>{const k=chests[i];if(!k)return;k.open=true;if(k.sec&&secR){secR.opened=true;map[secR.kr][secR.kc]='g'}if(k.boss)enemies=enemies.filter(e=>e!==k.boss)});hasKey=!!o.key;dgDone=!!o.dgd}}say((n>1&&bm!==ob?'Nouveau biome : '+BIO[bm].n+' ! ':'')+'Niveau '+n);save()}
 function revive(){combatCombo=0;combatComboTimer=0;const inD=!!dg;if(inD)exitDungeon();hero.hp=stat().max;hero.slow=0;if(!inD){hero.x=2*T;hero.y=(H-5)*T-8;hero.dir='r'}atk=0;dash=dcd=0;beams.length=0;bul.length=zones.length=pools.length=evs.length=0;parts.length=0;state='play';hero.inv=2;fadeT=.6;say(inD?'Tu es sorti du donjon':'Tu repars du début du niveau');save()}
@@ -851,7 +857,7 @@ $('trn').addEventListener('click',e=>{
 $('trb').addEventListener('click',e=>{e.currentTarget.blur();train?exitTrain():enterTrain()});
 function placeUI(){
   const r=cv.getBoundingClientRect(),sc=r.width/320,b=$('trb'),p=$('trn');
-  b.style.left=(r.left+78*sc)+'px';b.style.top=(r.top+4*sc)+'px';const mb=$('mb');mb.style.left=(r.left+78*sc+30)+'px';mb.style.top=b.style.top;
+  b.style.left=(r.left+78*sc)+'px';b.style.top=(r.top+4*sc)+'px';const mb=$('mb');mb.style.left=(r.left+78*sc+30)+'px';mb.style.top=b.style.top;const pz=$('pz');pz.style.left=(r.left+78*sc+60)+'px';pz.style.top=b.style.top;
   p.style.left=(r.left+4*sc)+'px';p.style.top=(r.top+26*sc)+'px';
   const rows=Math.ceil(Math.ceil(stat().max/2)/8),bb=$('bagb');bb.style.left=(r.left+4*sc)+'px';bb.style.top=(r.top+(4+38+rows*8+3)*sc)+'px';
 }
@@ -1960,7 +1966,7 @@ function tapAt(cx,cy){
  const rel=()=>{keys.left=keys.right=keys.up=keys.down=0;ring.hidden=true};
  document.body.addEventListener('pointerdown',e=>{
   if(e.button===2&&!e.target.closest('#inv,#trn')){e.preventDefault();doDash();return}
-  if(e.button!==0||e.target.closest('button,#inv,#trn,#title'))return;
+  if(e.button!==0||e.target.closest('button,#inv,#trn,#title,#pm,#vic'))return;
   if(e.pointerType==='mouse'){tapAt(e.clientX,e.clientY);return}
   if(pid===null){pid=e.pointerId;ox=sx=e.clientX;oy=sy=e.clientY;t0=performance.now();moved=false}
   else tapAt(e.clientX,e.clientY)});
@@ -1991,8 +1997,8 @@ function refreshSkills(){
   {const rdy=state==='dead'||(state==='play'&&(nearShop()||!!nearChest()));$('sk4').classList.toggle('zero',!rdy);$('sk4').classList.toggle('ready',rdy)}
   $('bagb').style.display=train?'none':''
 }
-function showTitle(has){state='title';$('title').hidden=false;$('tsub').textContent=(has?'Niveau '+lvl+' · reprise de ta partie':'Une aventure sans fin')+(best>1?' · Record : niveau '+best:'');$('tgo').textContent=has?'▶ Continuer':'▶ Jouer';$('tnew').hidden=!has}
-function startGame(){$('title').hidden=true;state='play'}
+function showTitle(has){state='title';$('title').hidden=false;$('tsub').textContent=(has?'Niveau '+lvl+' · reprise de ta partie':wonOnce?'Aventure terminée · bravo !':'Une aventure en 20 niveaux')+(best>1?' · Record : niveau '+best:'');$('tgo').textContent=has?'▶ Continuer':'▶ Jouer';$('tnew').hidden=!has}
+function startGame(){noSave=false;$('title').hidden=true;state='play'}
 $('tgo').addEventListener('click',startGame);
 $('rot').addEventListener('click',e=>{e.currentTarget.hidden=true});
 function newGame(){
@@ -2528,6 +2534,17 @@ $('shop').addEventListener('click',e=>{if(e.target.id==='shop'){closeShop();retu
   sfx(900,1300,.08,'square',.04);renderShop();save()});
 
 hero.hp=12;const _s=loadGame();startLevel(_s?_s.lvl:1);if(_s)say('Partie reprise · Niveau '+lvl);showTitle(!!_s);
+// ---- Menu pause et victoire ----
+let wonOnce=false;try{wonOnce=localStorage.getItem('petit-heros-won')==='1'}catch(e){}
+const pmSync=()=>{$('pmus').textContent='🎵 Musique : '+(musOn?'oui':'non');$('psnd').textContent=(muted?'🔇':'🔊')+' Son : '+(muted?'non':'oui')};
+function openPause(){if(state!=='play')return;for(const k in keys)keys[k]=0;state='menu';pmSync();$('pm').hidden=false}
+function closePause(){$('pm').hidden=true;if(state==='menu')state='play'}
+$('pz').addEventListener('click',openPause);$('pres').addEventListener('click',closePause);
+$('pmus').addEventListener('click',()=>{musOn=!musOn;try{localStorage.setItem('petit-heros-mus',musOn?'1':'0')}catch(e){}pmSync()});
+$('psnd').addEventListener('click',()=>{setMute(!muted);pmSync()});
+$('ptit').addEventListener('click',()=>{save();$('pm').hidden=true;showTitle(true)});
+function showVictory(){wonOnce=true;try{localStorage.setItem('petit-heros-won','1')}catch(e){}state='menu';$('vtxt').textContent='Tu as vaincu le boss du niveau 20 ! Le royaume est sauvé. Fin de l’aventure, bravo petit héros !';$('vic').hidden=false;sfx(400,1200,.5,'triangle',.06)}
+$('vtit').addEventListener('click',()=>{$('vic').hidden=true;newGame();noSave=true;try{localStorage.removeItem(SAVE)}catch(e){}showTitle(false)});
 let last=performance.now();
 function loop(t){requestAnimationFrame(loop);if(t-last<12.5)return;const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);render();refreshSkills()}
 requestAnimationFrame(loop);
@@ -2536,6 +2553,8 @@ requestAnimationFrame(loop);
 const KM={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down'};
 addEventListener('keydown',e=>{
   if(state==='pause'){state='play';e.preventDefault();return}
+  if(state==='menu'){if(!$('pm').hidden&&['Escape','KeyP'].includes(e.code)){closePause();e.preventDefault()}return}
+  if(state==='play'&&(e.code==='Escape'||e.code==='KeyP')){openPause();e.preventDefault();return}
   if(state==='title'){if(e.code==='Enter'||e.code==='Space'){startGame();e.preventDefault()}return}
   if(state==='shop'){if(['Escape','KeyE','Tab','Enter'].includes(e.code)){closeShop();e.preventDefault()}return}
   if(KM[e.code]){keys[KM[e.code]]=1;e.preventDefault()}
