@@ -2707,7 +2707,6 @@ const _ed=enterDungeon;window.enterDungeon=function(){const had=!!dg;_ed();if(ha
 let OBJ=null;
 const sv=()=>{try{localStorage.setItem('petit-heros-ach',JSON.stringify(A))}catch(e){}};
 ACH.push(['ob5',"🎯 Chasseur d'objectifs : 5 réussis",()=>(A.ob||0)>=5]);
-const txt=o=>o.k==='pot'?'🧪 Sans potion':o.k==='combo'?'⚔️ Combos parfaits '+o.p+'/'+o.t:o.k==='sec'?'🔍 Trouve la salle secrète':'👹 Ennemis '+Math.min(o.t,o.p)+'/'+o.t;
 function mkOb(){OBJ=null;if(train||lvl<2)return;
   const n=enemies.filter(e=>!e.dummy).length,L=['pot','combo'];if(secR&&!secR.opened)L.push('sec');if(n>=5)L.push('kill');
   const k=L[lvl%L.length],o={k,done:false,fail:false,p:0,r:6+lvl};
@@ -2723,12 +2722,27 @@ const _u3=update;window.update=function(dt){const pcb=combatCombo;_u3(dt);
   if(OBJ.k==='combo'){if(pcb===3&&combatCombo===0&&combatComboTimer>0){OBJ.p++;if(OBJ.p>=OBJ.t)reward()}}
   else if(OBJ.k==='kill'){OBJ.p=Math.max(0,run.kills-OBJ.k0);if(OBJ.p>=OBJ.t)reward()}
   else if(OBJ.k==='sec'&&secR&&secR.opened)reward()};
+const css=document.createElement('style');css.textContent='#objb{position:fixed;z-index:4;display:none;align-items:center;height:26px;padding:0 8px;border-radius:6px;font:bold 12px system-ui,sans-serif;white-space:nowrap;color:#ffe97a;background:var(--hud-glass);border:1px solid var(--hud-edge);filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}#objb.ok{color:#7dff9a}#objb.ko{color:#ff8a8a}';document.head.appendChild(css);
+const objb=document.createElement('button');objb.id='objb';document.body.appendChild(objb);
+const xo2=$('xo'),bx2=xo2.firstChild;
+const prog=o=>o.k==='combo'||o.k==='kill'?' '+Math.min(o.t,o.p)+'/'+o.t:'';
+const desc=o=>o.k==='pot'?'Termine ce niveau sans boire aucune potion.':o.k==='combo'?'Réussis '+o.t+' combos parfaits (4 coups d’épée enchaînés sans pause).':o.k==='sec'?'Trouve et ouvre la salle secrète du niveau (un rocher fissuré : fais-le sauter avec une bombe).':'Vaincs '+o.t+' ennemis dans ce niveau.';
+function openObj(){if(!OBJ||state!=='play')return;
+  const o=OBJ,st=o.done?'✅ Réussi !':o.fail?'✖ Raté (potion bue)':'⏳ En cours'+prog(o);
+  bx2.innerHTML='<h2>🎯 Objectif · niveau '+lvl+'</h2><p>'+desc(o)+'</p><p><b>'+st+'</b></p><p>Récompense : +'+o.r+'💎'+(o.k==='pot'?' (donnée à la fin du niveau)':'')+'</p><p style="opacity:.7">Facultatif : tu peux l’ignorer. Objectifs réussis au total : '+(A.ob||0)+'</p>';
+  const b=document.createElement('button');b.className='it';b.textContent='Fermer';b.onclick=()=>{xo2.hidden=true;if(state==='ev')state='play'};bx2.appendChild(b);
+  state='ev';xo2.hidden=false}
+objb.addEventListener('click',e=>{e.currentTarget.blur();openObj()});
+let lastL='';
+function placeObj(){const p=$('pz').getBoundingClientRect();objb.style.left=(p.right+4)+'px';objb.style.top=p.top+'px';lastL=$('pz').style.left}
+addEventListener('resize',placeObj);addEventListener('orientationchange',()=>setTimeout(placeObj,250));
 const _r3=render;window.render=function(){_r3();
-  if(!OBJ||train||fb||state==='title'||state==='menu'||state==='dead'||state==='pause')return;
-  const t=(OBJ.done?'✅ ':OBJ.fail?'✖ ':'🎯 ')+txt(OBJ).replace(/^\S+ /,'');
-  ctx.save();ctx.setTransform(4,0,0,4,0,0);ctx.font='bold 7px monospace';ctx.textAlign='center';
-  const w=ctx.measureText(t).width+8;R(152-w/2,4,w,11,'rgba(0,0,0,.5)');
-  ctx.fillStyle=OBJ.done?'#7dff9a':OBJ.fail?'#ff8a8a':'#ffe97a';ctx.fillText(t,152,12);ctx.restore()};
+  const show=OBJ&&!train&&(state==='play'||state==='ev');
+  objb.style.display=show?'flex':'none';if(!show)return;
+  if($('pz').style.left!==lastL)placeObj();
+  const t=(OBJ.done?'✅ ':OBJ.fail?'✖ ':'🎯 ')+'Objectif'+(OBJ.done||OBJ.fail?'':prog(OBJ));
+  if(objb.textContent!==t){objb.textContent=t;objb.className=OBJ.done?'ok':OBJ.fail?'ko':''}};
+placeObj();
 mkOb();
 })();
 </script>
