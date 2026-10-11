@@ -2617,7 +2617,14 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=0;autoPause()});
 (()=>{
 const R_=Math.random,sa=()=>{try{localStorage.setItem('petit-heros-ach',JSON.stringify(A))}catch(e){}};
 // ---- Équipement légendaire ----
-const LG={weapon:[['fire','🔥','brûle'],['ice','❄️','gèle']],armor:[['reflect','🪞','renvoie']],ring:[['coin','🧲','aimant']]};
+const LG={weapon:[['fire','🔥','brûle'],['ice','❄️','gèle'],['vamp','🩸','vampire'],['bolt','⚡','foudre']],armor:[['reflect','🪞','renvoie'],['heal','💚','soin']],ring:[['coin','🧲','aimant'],['regen','💖','régénère']]};
+Object.assign(LGD,{vamp:'30 % de soigner 1 PV par ennemi tué',bolt:'la foudre saute sur un ennemi proche',heal:'soigne 1 PV après un combo parfait',regen:'régénère 1 PV toutes les 12 s'});
+const _df=dieFx;window.dieFx=function(e){_df(e);if(e&&!e.dummy&&!e.sm&&!train&&eq.weapon&&eq.weapon.leg==='vamp'&&R_()<.3)heal(1)};
+function zap(src){let b=null,bd=60;for(const o of enemies){if(o===src||o.dummy||o.boss||o.hp<=0)continue;const d=Math.hypot(o.x-src.x,o.y-src.y);if(d<bd){bd=d;b=o}}if(!b)return false;
+  const dm=Math.max(1,Math.round(stat().atk*.5));b.hp-=dm;b.hit=.2;b._h=.2;dmgFx(b.x+8,b.y,dm,'#ffe97a');
+  for(let i=0;i<7;i++){const t=i/6;parts.push({x:src.x+8+(b.x-src.x)*t,y:src.y+8+(b.y-src.y)*t,vx:0,vy:0,g:0,s:2,l:.25,c:i%2?'#ffe97a':'#fff'})}
+  sfx(900,300,.08,'square',.04);if(b.hp<=0){dieFx(b);return true}return false}
+let rgT=0;
 function mkLeg(i){const o=LG[i.slot];if(!o)return i;const l=o[R_()*o.length|0];i.leg=l[0];i.name=l[1]+' '+i.name+' ✨('+l[2]+')';return i}
 const _loot=loot;window.loot=function(s){const i=_loot(s);if(R_()<Math.min(.2,.06+lvl*.007))mkLeg(i);return i};
 const _ab=addBag;window.addBag=function(i){if(i.leg){A.lg=1;sa()}return _ab(i)};
@@ -2642,14 +2649,16 @@ const _rd=render;window.render=function(){_rd();
 // ---- Boucle : pouvoirs, glace, dangers, secrets ----
 const _up=update;window.update=function(dt){
   if(state!=='play')return _up(dt);
-  const px=hero.x,py=hero.y;_up(dt);if(state!=='play'||train)return;
+  const px=hero.x,py=hero.y,pcb=combatCombo;_up(dt);if(state!=='play'||train)return;
   const w=eq.weapon&&eq.weapon.leg,rg=eq.ring&&eq.ring.leg;let kill=false;
   for(const e of enemies){if(e.dummy)continue;
-    if(e.hit>=.15&&(e._h||0)<.15){if(w==='fire'){e.burn=3;e.bt=.5}else if(w==='ice')e.frz=2.5}e._h=e.hit;
+    if(e.hit>=.15&&(e._h||0)<.15){if(w==='fire'){e.burn=3;e.bt=.5}else if(w==='ice')e.frz=2.5;else if(w==='bolt'){if(zap(e))kill=true}}e._h=e.hit;
     if(e.frz>0){e.frz-=dt;if(!e._s)e._s=e.spd;e.spd=e._s*.45;if(R_()<.15)parts.push({x:e.x+4+R_()*8,y:e.y+4+R_()*8,vx:0,vy:-8,g:0,s:2,l:.4,c:'#bfefff'})}else if(e._s){e.spd=e._s;e._s=0}
     if(e.burn>0){e.burn-=dt;e.bt-=dt;if(R_()<.25)parts.push({x:e.x+4+R_()*8,y:e.y+6,vx:0,vy:-20,g:0,s:2,l:.35,c:R_()<.5?'#ff8a3a':'#ffd23a'});
       if(e.bt<=0){e.bt=.5;const d=Math.max(1,Math.round(stat().atk*.2));e.hp-=d;dmgFx(e.x+8,e.y,d,'#ff8a3a');if(e.hp<=0){dieFx(e);kill=true}}}}
   if(kill)enemies=enemies.filter(e=>e.hp>0);
+  if(pcb===3&&combatCombo===0&&combatComboTimer>0&&eq.armor&&eq.armor.leg==='heal'&&hero.hp<stat().max)heal(1);
+  if(rg==='regen'){rgT+=dt;if(rgT>=12){rgT=0;if(hero.hp>0&&hero.hp<stat().max)heal(1)}}else rgT=0;
   if(rg==='coin')for(const p of pk)if(p.k==='g'){const dx=hero.x+8-p.x,dy=hero.y+10-p.y,d=Math.hypot(dx,dy);if(d<90&&d>1){p.x+=dx/d*110*dt;p.y+=dy/d*110*dt}}
   if(bm===6&&!dg&&dash<=0){const vx=(hero.x-px)/dt,vy=(hero.y-py)/dt,k=Math.min(1,dt*3.5),f=Math.max(0,1-dt*1.6);
     if(hero.moving){iv.x+=(vx-iv.x)*k;iv.y+=(vy-iv.y)*k}else{iv.x*=f;iv.y*=f}
@@ -2692,6 +2701,35 @@ const _ed=enterDungeon;window.enterDungeon=function(){const had=!!dg;_ed();if(ha
   const L=dg.rooms[dg.rooms.length-1],cx=(L.c0+L.c1)/2|0,cy=(L.r0+L.r1)/2|0;let c=cx-4;while(c<cx&&map[cy][c]!=='g')c++;
   dg.ev={k:evMem.k,x:c*T+8,y:cy*T+8,used:false,cd:0};
   setTimeout(()=>{if(dg&&dg.ev&&state==='play')say('Quelque chose brille dans la salle du boss…')},1000)};
+})();
+/* AJOUTS v14 : objectif secondaire par niveau (facultatif, récompense en rubis) */
+(()=>{
+let OBJ=null;
+const sv=()=>{try{localStorage.setItem('petit-heros-ach',JSON.stringify(A))}catch(e){}};
+ACH.push(['ob5',"🎯 Chasseur d'objectifs : 5 réussis",()=>(A.ob||0)>=5]);
+const txt=o=>o.k==='pot'?'🧪 Sans potion':o.k==='combo'?'⚔️ Combos parfaits '+o.p+'/'+o.t:o.k==='sec'?'🔍 Trouve la salle secrète':'👹 Ennemis '+Math.min(o.t,o.p)+'/'+o.t;
+function mkOb(){OBJ=null;if(train||lvl<2)return;
+  const n=enemies.filter(e=>!e.dummy).length,L=['pot','combo'];if(secR&&!secR.opened)L.push('sec');if(n>=5)L.push('kill');
+  const k=L[lvl%L.length],o={k,done:false,fail:false,p:0,r:6+lvl};
+  if(k==='combo')o.t=2+(lvl/7|0);if(k==='kill'){o.t=Math.max(3,Math.ceil(n*.6));o.k0=run.kills}
+  OBJ=o}
+function reward(){if(!OBJ||OBJ.done)return;OBJ.done=true;gems+=OBJ.r;A.ob=(A.ob||0)+1;sv();sfx(600,1300,.25,'triangle',.05);say('🎯 Objectif réussi ! +'+OBJ.r+'💎');save()}
+const _sl3=startLevel;window.startLevel=function(){const r=_sl3.apply(this,arguments);mkOb();return r};
+const _dr=drink;window.drink=function(n){if(OBJ&&OBJ.k==='pot'&&!OBJ.done)OBJ.fail=true;return _dr(n)};
+const _ld2=levelDone;window.levelDone=function(){let m=_ld2();
+  if(OBJ&&!train&&OBJ.k==='pot'&&!OBJ.done&&!OBJ.fail){OBJ.done=true;gems+=OBJ.r;A.ob=(A.ob||0)+1;sv();m+=' · 🎯 +'+OBJ.r+'💎'}return m};
+const _u3=update;window.update=function(dt){const pcb=combatCombo;_u3(dt);
+  if(!OBJ||OBJ.done||train||state!=='play')return;
+  if(OBJ.k==='combo'){if(pcb===3&&combatCombo===0&&combatComboTimer>0){OBJ.p++;if(OBJ.p>=OBJ.t)reward()}}
+  else if(OBJ.k==='kill'){OBJ.p=Math.max(0,run.kills-OBJ.k0);if(OBJ.p>=OBJ.t)reward()}
+  else if(OBJ.k==='sec'&&secR&&secR.opened)reward()};
+const _r3=render;window.render=function(){_r3();
+  if(!OBJ||train||fb||state==='title'||state==='menu'||state==='dead'||state==='pause')return;
+  const t=(OBJ.done?'✅ ':OBJ.fail?'✖ ':'🎯 ')+txt(OBJ).replace(/^\S+ /,'');
+  ctx.save();ctx.setTransform(4,0,0,4,0,0);ctx.font='bold 7px monospace';ctx.textAlign='center';
+  const w=ctx.measureText(t).width+8;R(152-w/2,4,w,11,'rgba(0,0,0,.5)');
+  ctx.fillStyle=OBJ.done?'#7dff9a':OBJ.fail?'#ff8a8a':'#ffe97a';ctx.fillText(t,152,12);ctx.restore()};
+mkOb();
 })();
 </script>
 <script>
