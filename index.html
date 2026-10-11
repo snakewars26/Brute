@@ -2610,6 +2610,73 @@ addEventListener('keyup',e=>{if(KM[e.code])keys[KM[e.code]]=0});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=0;autoPause()});
 </script>
 <script>
+/* AJOUTS v13 : légendaires · biomes dangereux · événements de donjon · quêtes */
+(()=>{
+const R_=Math.random,sa=()=>{try{localStorage.setItem('petit-heros-ach',JSON.stringify(A))}catch(e){}};
+// ---- Équipement légendaire ----
+const LG={weapon:[['fire','🔥','brûle'],['ice','❄️','gèle']],armor:[['reflect','🪞','renvoie']],ring:[['coin','🧲','aimant']]};
+function mkLeg(i){const o=LG[i.slot];if(!o)return i;const l=o[R_()*o.length|0];i.leg=l[0];i.name=l[1]+' '+i.name+' ✨('+l[2]+')';return i}
+const _loot=loot;window.loot=function(s){const i=_loot(s);if(R_()<Math.min(.2,.06+lvl*.007))mkLeg(i);return i};
+const _ab=addBag;window.addBag=function(i){if(i.leg){A.lg=1;sa()}return _ab(i)};
+const _hu=hurt;window.hurt=function(e){_hu(e);
+  if(eq.armor&&eq.armor.leg==='reflect'&&enemies.includes(e)&&!e.dummy){const d=Math.max(1,Math.ceil(e.dmg*.6));e.hp-=d;e.hit=.2;dmgFx(e.x+8,e.y,d,'#9fe0ff');if(e.hp<=0){dieFx(e);enemies=enemies.filter(o=>o.hp>0)}}};
+// ---- Dangers des biomes ----
+let HZ=[];const iv={x:0,y:0};
+const _sl=startLevel;window.startLevel=function(){const r=_sl.apply(this,arguments);genHz();return r};
+function genHz(){HZ=[];iv.x=iv.y=0;if(dg||train)return;const kind=bm===0?'thorn':(bm===4||bm===5)?'lava':0;if(!kind)return;
+  let s=(Math.imul(lvl,2246822519)+99)>>>0;const h=()=>(s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296;
+  const cells=kind==='lava'?[[0,0],[1,0],[0,1]]:[[0,0]],lim=kind==='lava'?21:16;
+  for(let i=0;i<500&&HZ.length<lim;i++){const c=3+(h()*(W-14)|0),r=2+(h()*(H-5)|0);
+    if(!cells.every(([a,b])=>map[r+b]&&map[r+b][c+a]==='g'&&!path[r+b][c+a]))continue;
+    if(Math.hypot(c-2,r-(H-5))<8||chests.some(k=>Math.hypot(k.c-c,k.r-r)<3)||(dgIn&&Math.hypot(dgIn.c-c,dgIn.r-r)<3)||(shop&&Math.hypot(shop.c-c,shop.r-r)<3)||HZ.some(z=>Math.abs(z.c-c)<2&&Math.abs(z.r-r)<2))continue;
+    cells.forEach(([a,b])=>HZ.push({c:c+a,r:r+b,k:kind}))}}
+const _dd=dgDraw;window.dgDraw=function(){_dd();if(dg||!HZ.length)return;const t=performance.now()/1000;
+  for(const z of HZ){const x=z.c*T,y=z.r*T;if(x<camX-16||x>camX+336||y<camY-16||y>camY+256)continue;
+    if(z.k==='lava'){R(x,y,T,T,'#8a1a08');R(x+1,y+1,T-2,T-2,'#e8541c');R(x+3,y+3,T-6,T-6,'rgba(255,200,60,'+(.3+.5*(Math.sin(t*3+x*.7+y)*.5+.5))+')');R(x+(x*3)%9+2,y+(y*5)%9+2,3,2,'#fff2a0')}
+    else{R(x+2,y+11,12,4,'#2f6b2a');R(x+7,y+3,2,10,'#3f8a36');R(x+3,y+6,2,7,'#3f8a36');R(x+11,y+6,2,7,'#3f8a36');R(x+6,y+1,4,3,'#e0454f');R(x+2,y+4,2,2,'#e0454f');R(x+12,y+4,2,2,'#e0454f')}}};
+const _rd=render;window.render=function(){_rd();
+  if(bm===1&&!dg&&!train&&state!=='menu'){ctx.save();ctx.setTransform(4,0,0,4,0,0);const x=hero.x+8-camX,y=hero.y+10-camY,g=ctx.createRadialGradient(x,y,22,x,y,105);g.addColorStop(0,'rgba(4,4,16,0)');g.addColorStop(1,'rgba(4,4,16,.62)');ctx.fillStyle=g;ctx.fillRect(0,0,320,240);ctx.restore()}};
+// ---- Boucle : pouvoirs, glace, dangers, secrets ----
+const _up=update;window.update=function(dt){
+  if(state!=='play')return _up(dt);
+  const px=hero.x,py=hero.y;_up(dt);if(state!=='play'||train)return;
+  const w=eq.weapon&&eq.weapon.leg,rg=eq.ring&&eq.ring.leg;let kill=false;
+  for(const e of enemies){if(e.dummy)continue;
+    if(e.hit>=.15&&(e._h||0)<.15){if(w==='fire'){e.burn=3;e.bt=.5}else if(w==='ice')e.frz=2.5}e._h=e.hit;
+    if(e.frz>0){e.frz-=dt;if(!e._s)e._s=e.spd;e.spd=e._s*.45;if(R_()<.15)parts.push({x:e.x+4+R_()*8,y:e.y+4+R_()*8,vx:0,vy:-8,g:0,s:2,l:.4,c:'#bfefff'})}else if(e._s){e.spd=e._s;e._s=0}
+    if(e.burn>0){e.burn-=dt;e.bt-=dt;if(R_()<.25)parts.push({x:e.x+4+R_()*8,y:e.y+6,vx:0,vy:-20,g:0,s:2,l:.35,c:R_()<.5?'#ff8a3a':'#ffd23a'});
+      if(e.bt<=0){e.bt=.5;const d=Math.max(1,Math.round(stat().atk*.2));e.hp-=d;dmgFx(e.x+8,e.y,d,'#ff8a3a');if(e.hp<=0){dieFx(e);kill=true}}}}
+  if(kill)enemies=enemies.filter(e=>e.hp>0);
+  if(rg==='coin')for(const p of pk)if(p.k==='g'){const dx=hero.x+8-p.x,dy=hero.y+10-p.y,d=Math.hypot(dx,dy);if(d<90&&d>1){p.x+=dx/d*110*dt;p.y+=dy/d*110*dt}}
+  if(bm===6&&!dg&&dash<=0){const vx=(hero.x-px)/dt,vy=(hero.y-py)/dt,k=Math.min(1,dt*3.5),f=Math.max(0,1-dt*1.6);
+    if(hero.moving){iv.x+=(vx-iv.x)*k;iv.y+=(vy-iv.y)*k}else{iv.x*=f;iv.y*=f}
+    const nx=px+iv.x*dt,ny=py+iv.y*dt;hero.x=px;hero.y=py;if(free(nx,py))hero.x=nx;else iv.x=0;if(free(hero.x,ny))hero.y=ny;else iv.y=0;
+    if(!hero.moving&&Math.hypot(iv.x,iv.y)>15&&R_()<.3)parts.push({x:hero.x+8,y:hero.y+14,vx:0,vy:0,g:0,s:2,l:.3,c:'#fff'})}
+  if(!dg&&HZ.length&&hero.inv<=0){const c=Math.floor((hero.x+8)/T),r=Math.floor((hero.y+12)/T),z=HZ.find(z=>z.c===c&&z.r===r);
+    if(z){hurt({dmg:(z.k==='lava'?3:1)+stat().def,cd:0,kind:0});say(z.k==='lava'?'🔥 La lave brûle !':'🌿 Plante hostile !')}}
+  if(secR&&secR.opened&&!secR.cnt){secR.cnt=1;A.sc=(A.sc||0)+1;sa()}
+};
+// ---- Quêtes ----
+ACH.push(['lgd','✨ Équipement légendaire trouvé',()=>A.lg>=1],['nd','🛡️ Intouchable : niveau sans dégâts',()=>A.nd>=1],['bw',"🪵 Boss vaincu avec l'épée de départ",()=>A.bw>=1],['sc3','🔍 Fouineur : 3 salles secrètes',()=>A.sc>=3],['ev3','🎲 Aventurier : 3 événements de donjon',()=>A.ev>=3]);
+const _ld=levelDone;window.levelDone=function(){if(!run.hits&&!train){A.nd=(A.nd||0)+1;sa()}return _ld()};
+const _kb=killBoss;window.killBoss=function(){if(eq.weapon&&eq.weapon.tier===0&&!eq.weapon.s&&!train){A.bw=1;sa()}return _kb.apply(this,arguments)};
+// ---- Fenêtres (événements + quêtes) ----
+const st=document.createElement('style');st.textContent='#xo{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65)}#xo .box{display:flex;flex-direction:column;gap:8px;min-width:230px;max-width:90vw;max-height:88vh;overflow:auto;padding:14px;border-radius:12px;background:var(--paper);color:var(--paper-ink);border:2px solid var(--paper-line);text-align:center}#xo p{margin:0;font-size:.9rem}#xo .q{text-align:left}';document.head.appendChild(st);
+const xo=document.createElement('div');xo.id='xo';xo.hidden=true;xo.innerHTML='<div class="box"></div>';document.body.appendChild(xo);const bx=xo.firstChild;
+const btn=(l,f)=>{const b=document.createElement('button');b.className='it';b.textContent=l;b.onclick=f;bx.appendChild(b)};
+function ask(t,txt,opts){state='ev';bx.innerHTML='<h2>'+t+'</h2><p>'+txt+'</p>';opts.forEach(([l,f])=>btn(l,()=>{xo.hidden=true;state='play';f()}));xo.hidden=false}
+const qb=document.createElement('button');qb.className='it';qb.textContent='🏆 Quêtes et succès';$('ptit').before(qb);
+qb.onclick=()=>{bx.innerHTML='<h2>🏆 Quêtes et succès</h2>'+ACH.map(([id,n,f])=>'<p class="q">'+(A.done.includes(id)||f()?'✅ ':'⬜ ')+n+'</p>').join('')+'<p class="q" style="opacity:.7">Ennemis vaincus : '+A.k+'</p>';btn('Fermer',()=>{xo.hidden=true});xo.hidden=false};
+// ---- Événements aléatoires de donjon ----
+const done=()=>{A.ev=(A.ev||0)+1;sa()};
+function dgEvent(k){if(state!=='play'||!dg)return;
+  if(k===0)ask('💀 Coffre maudit',"Un coffre noir palpite dans l'ombre : un trésor contre ton sang.",[['Ouvrir (−3 PV)',()=>{done();if(hero.hp<=3){say('Trop faible pour ce pacte…');return}hero.hp-=3;const it=loot(['weapon','armor','ring'][R_()*3|0]);if(R_()<.35&&!it.leg)mkLeg(it);if(bagNeed([it])>20){gems+=12;say('Sac plein : +12💎')}else{addBag(it);say('Maudit mais précieux : '+it.name)}sfx(150,60,.3,'sawtooth',.06)}],['Ignorer',()=>{}]]);
+  else if(k===1){const g=15+lvl*2;ask('⛲ Autel des offrandes','Choisis une seule récompense.',[['💎 +'+g+' rubis',()=>{done();gems+=g;say('+'+g+'💎')}],['❤️ Soin complet',()=>{done();hero.hp=stat().max;healFx();say('PV restaurés')}],['💣🏹 Munitions',()=>{done();bombs=Math.min(9,bombs+4);arrows=Math.min(30,arrows+15);say('+4 bombes, +15 flèches')}]])}
+  else{const ok=R_()*3|0;ask('🧩 Énigme','Trois runes brillent sur le mur. Une seule est sûre…',['🔥','❄️','⚡'].map((s,i)=>[s,()=>{done();if(i===ok){gems+=10+lvl;say('Bonne rune ! +'+(10+lvl)+'💎')}else{hurt({dmg:2+stat().def,cd:0,kind:0});say('Piège ! −2 PV')}}]))}}
+const _ed=enterDungeon;window.enterDungeon=function(){const had=!!dg;_ed();if(had||!dg||train||R_()>.6)return;const k=R_()*3|0;setTimeout(()=>dgEvent(k),900)};
+})();
+</script>
+<script>
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
   addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
 }
