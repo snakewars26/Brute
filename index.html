@@ -2630,7 +2630,7 @@ function genHz(){HZ=[];iv.x=iv.y=0;if(dg||train)return;const kind=bm===0?'thorn'
     if(!cells.every(([a,b])=>map[r+b]&&map[r+b][c+a]==='g'&&!path[r+b][c+a]))continue;
     if(Math.hypot(c-2,r-(H-5))<8||chests.some(k=>Math.hypot(k.c-c,k.r-r)<3)||(dgIn&&Math.hypot(dgIn.c-c,dgIn.r-r)<3)||(shop&&Math.hypot(shop.c-c,shop.r-r)<3)||HZ.some(z=>Math.abs(z.c-c)<2&&Math.abs(z.r-r)<2))continue;
     cells.forEach(([a,b])=>HZ.push({c:c+a,r:r+b,k:kind}))}}
-const _dd=dgDraw;window.dgDraw=function(){_dd();if(dg||!HZ.length)return;const t=performance.now()/1000;
+const _dd=dgDraw;window.dgDraw=function(){_dd();if(dg){drawEv();return}if(!HZ.length)return;const t=performance.now()/1000;
   for(const z of HZ){const x=z.c*T,y=z.r*T;if(x<camX-16||x>camX+336||y<camY-16||y>camY+256)continue;
     if(z.k==='lava'){R(x,y,T,T,'#8a1a08');R(x+1,y+1,T-2,T-2,'#e8541c');R(x+3,y+3,T-6,T-6,'rgba(255,200,60,'+(.3+.5*(Math.sin(t*3+x*.7+y)*.5+.5))+')');R(x+(x*3)%9+2,y+(y*5)%9+2,3,2,'#fff2a0')}
     else{R(x+2,y+11,12,4,'#2f6b2a');R(x+7,y+3,2,10,'#3f8a36');R(x+3,y+6,2,7,'#3f8a36');R(x+11,y+6,2,7,'#3f8a36');R(x+6,y+1,4,3,'#e0454f');R(x+2,y+4,2,2,'#e0454f');R(x+12,y+4,2,2,'#e0454f')}}};
@@ -2654,6 +2654,7 @@ const _up=update;window.update=function(dt){
     if(!hero.moving&&Math.hypot(iv.x,iv.y)>15&&R_()<.3)parts.push({x:hero.x+8,y:hero.y+14,vx:0,vy:0,g:0,s:2,l:.3,c:'#fff'})}
   if(!dg&&HZ.length&&hero.inv<=0){const c=Math.floor((hero.x+8)/T),r=Math.floor((hero.y+12)/T),z=HZ.find(z=>z.c===c&&z.r===r);
     if(z){hurt({dmg:(z.k==='lava'?3:1)+stat().def,cd:0,kind:0});say(z.k==='lava'?'🔥 La lave brûle !':'🌿 Plante hostile !')}}
+  if(dg&&dg.ev&&!dg.ev.used&&Math.hypot(dg.ev.x-(hero.x+8),dg.ev.y-(hero.y+11))<20&&((dg.ev.cd=(dg.ev.cd||0)-dt)<=0)){if(dg.bossDown){dg.ev.cd=1.5;dgEvent(dg.ev.k)}else{dg.ev.cd=2.5;say('🔒 Scellé : vaincs d\'abord le gardien')}}
   if(secR&&secR.opened&&!secR.cnt){secR.cnt=1;A.sc=(A.sc||0)+1;sa()}
 };
 // ---- Quêtes ----
@@ -2668,12 +2669,26 @@ function ask(t,txt,opts){state='ev';bx.innerHTML='<h2>'+t+'</h2><p>'+txt+'</p>';
 const qb=document.createElement('button');qb.className='it';qb.textContent='🏆 Quêtes et succès';$('ptit').before(qb);
 qb.onclick=()=>{bx.innerHTML='<h2>🏆 Quêtes et succès</h2>'+ACH.map(([id,n,f])=>'<p class="q">'+(A.done.includes(id)||f()?'✅ ':'⬜ ')+n+'</p>').join('')+'<p class="q" style="opacity:.7">Ennemis vaincus : '+A.k+'</p>';btn('Fermer',()=>{xo.hidden=true});xo.hidden=false};
 // ---- Événements aléatoires de donjon ----
-const done=()=>{A.ev=(A.ev||0)+1;sa()};
+let evMem=null;try{evMem=JSON.parse(localStorage.getItem('petit-heros-evm')||'null')}catch(e){}
+const svm=()=>{try{localStorage.setItem('petit-heros-evm',JSON.stringify(evMem))}catch(e){}};
+const done=()=>{A.ev=(A.ev||0)+1;sa();if(dg&&dg.ev)dg.ev.used=true;if(evMem){evMem.used=true;svm()}};
 function dgEvent(k){if(state!=='play'||!dg)return;
-  if(k===0)ask('💀 Coffre maudit',"Un coffre noir palpite dans l'ombre : un trésor contre ton sang.",[['Ouvrir (−3 PV)',()=>{done();if(hero.hp<=3){say('Trop faible pour ce pacte…');return}hero.hp-=3;const it=loot(['weapon','armor','ring'][R_()*3|0]);if(R_()<.35&&!it.leg)mkLeg(it);if(bagNeed([it])>20){gems+=12;say('Sac plein : +12💎')}else{addBag(it);say('Maudit mais précieux : '+it.name)}sfx(150,60,.3,'sawtooth',.06)}],['Ignorer',()=>{}]]);
+  if(k===0)ask('💀 Coffre maudit',"Un coffre noir palpite dans l'ombre : un trésor contre ton sang.",[['Ouvrir (−3 PV)',()=>{done();if(hero.hp<=3){say('Trop faible pour ce pacte…');return}hero.hp-=3;const it=loot(['weapon','armor','ring'][R_()*3|0]);if(R_()<.35&&!it.leg)mkLeg(it);if(bagNeed([it])>20){gems+=12;say('Sac plein : +12💎')}else{addBag(it);say('Maudit mais précieux : '+it.name)}sfx(150,60,.3,'sawtooth',.06)}],['Ignorer',()=>{if(dg&&dg.ev)dg.ev.cd=5}]]);
   else if(k===1){const g=15+lvl*2;ask('⛲ Autel des offrandes','Choisis une seule récompense.',[['💎 +'+g+' rubis',()=>{done();gems+=g;say('+'+g+'💎')}],['❤️ Soin complet',()=>{done();hero.hp=stat().max;healFx();say('PV restaurés')}],['💣🏹 Munitions',()=>{done();bombs=Math.min(9,bombs+4);arrows=Math.min(30,arrows+15);say('+4 bombes, +15 flèches')}]])}
   else{const ok=R_()*3|0;ask('🧩 Énigme','Trois runes brillent sur le mur. Une seule est sûre…',['🔥','❄️','⚡'].map((s,i)=>[s,()=>{done();if(i===ok){gems+=10+lvl;say('Bonne rune ! +'+(10+lvl)+'💎')}else{hurt({dmg:2+stat().def,cd:0,kind:0});say('Piège ! −2 PV')}}]))}}
-const _ed=enterDungeon;window.enterDungeon=function(){const had=!!dg;_ed();if(had||!dg||train||R_()>.6)return;const k=R_()*3|0;setTimeout(()=>dgEvent(k),900)};
+function drawEv(){const e=dg.ev;if(!e||e.used)return;const x=e.x-8,y=e.y-8,t=performance.now()/1000,a=.35+.35*Math.sin(t*3);
+  R(x-1,y+12,18,5,'rgba(0,0,0,.3)');const lk=!dg.bossDown;
+  if(e.k===0){R(x+1,y+5,14,10,'#2a1038');R(x+1,y+5,14,3,'#4a1a5e');R(x+6,y+8,4,4,'#c0182a');R(x-2,y+2,20,14,'rgba(255,40,60,'+a*.35+')')}
+  else if(e.k===1){R(x+1,y+8,14,6,'#8a8f9c');R(x+2,y+6,12,3,'#b4b9c6');R(x+3,y+14,3,2,'#6a6f7c');R(x+10,y+14,3,2,'#6a6f7c');R(x+6,y+1+(t*6%2|0),4,5,'#7ee8ff');R(x+7,y+3,2,3,'#fff');R(x+2,y-2,12,10,'rgba(126,232,255,'+a*.3+')')}
+  else{R(x+3,y+1,10,14,'#8a8f9c');R(x+4,y+2,8,12,'#a8aebb');R(x+5,y+4,2,2,'#ff7a2a');R(x+7,y+7,2,2,'#7fd0ff');R(x+9,y+10,2,2,'#ffe27a');R(x+2,y,12,16,'rgba(255,230,140,'+a*.25+')')}
+  if(lk){R(x,y,16,16,'rgba(10,10,30,.55)');R(x+6,y+5,4,5,'#e8b923');R(x+5,y+8,6,5,'#c9962a');R(x+7,y+10,2,2,'#3a2a10')}}
+const _ng=newGame;window.newGame=function(){evMem=null;try{localStorage.removeItem('petit-heros-evm')}catch(e){}return _ng.apply(this,arguments)};
+const _ed=enterDungeon;window.enterDungeon=function(){const had=!!dg;_ed();if(had||!dg||train)return;
+  if(!evMem||evMem.lvl!==lvl){evMem={lvl,k:R_()<.6?(R_()*3|0):-1,used:false};svm()}
+  if(evMem.k<0||evMem.used)return;
+  const L=dg.rooms[dg.rooms.length-1],cx=(L.c0+L.c1)/2|0,cy=(L.r0+L.r1)/2|0;let c=cx-4;while(c<cx&&map[cy][c]!=='g')c++;
+  dg.ev={k:evMem.k,x:c*T+8,y:cy*T+8,used:false,cd:0};
+  setTimeout(()=>{if(dg&&dg.ev&&state==='play')say('Quelque chose brille dans la salle du boss…')},1000)};
 })();
 </script>
 <script>
