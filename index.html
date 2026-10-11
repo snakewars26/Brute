@@ -300,6 +300,9 @@ const BIO=[
 {n:'Royaume céleste',g:['#e8f2ff','#d2e4fa','#f6faff'],p:['#f1e3a8','#e0cf86','#fff6c8','#c9b565'],f:['','#ffd23a','#ffffff','#9fe0ff']}];
 const BC=[['#3fa84a','#6ad063','#1f5e2a','#e0454f'],['#7b4fc0','#d6c0ff','#7ee8ff'],['#8a5a2e','#5b3a1e','#a9743c'],['#6a8a6a','#d8d0c0','#3a5a40'],['#6a6a50','#9a8a60','#c4572a'],['#ff5a1f','#ffb03a','#6e1a1a'],['#ffd23a','#ffffff','#9fe0ff']];
 const LIVES=5;let lives=LIVES;
+// Zones : 4 tirages par biome (0 gluant 1 squelette 2 vampire 3 zombie 4 goule 5 démon 6 ange)
+const ZT=[[0,0,0,1],[1,1,0,3],[2,2,1,3],[3,3,4,1],[4,4,3,5],[5,5,4,2],[6,6,5,2]];
+let rz=null,RX=[],rzB=-1,rzCd=0;
 let camX=0,camY=0,endR=3,bm=0,lvl=1,enemies=[],chests=[],portal=null,state='play',msg='',msgT=0,retry=0,doorR=0,dg=null,dgIn=null,dgDone=false,dgCd=0,dgMem=null;
 let seed=11;const rnd=()=>(seed=(seed*1664525+1013904223)%4294967296)/4294967296;
 let RT=null;const R=(x,y,w,h,c,k=RT||ctx)=>{k.fillStyle=c;k.fillRect(x,y,w,h)};
@@ -310,7 +313,7 @@ let map,path,flo,ground,g,total=0,secR=null; // secR : salle secrète de la cart
 const shUp=e=>e.mod==='shield'&&((e.t+(e.x|0)%3)%3.2)<2.1; // bouclier levé ~2 s sur 3,2 s
 
 function buildLevel(){
-bm=Math.min(6,(lvl-1)/3|0);seed=lvl*97+11+retry*7919;map=[];path=[];flo=[];
+bm=rzB>=0?rzB:Math.min(6,(lvl-1)/3|0);seed=lvl*97+11+retry*7919+(rzB>=0?rzB*131+7:0);map=[];path=[];flo=[];
 for(let r=0;r<H;r++){map.push(Array(W).fill('g'));path.push(Array(W).fill(false));flo.push(Array(W).fill(0))}
 const hs=(r,a,b)=>{for(let c=a;c<=b;c++)path[r][c]=true};
 const vs=(c,a,b)=>{for(let r=a;r<=b;r++)path[r][c]=true};
@@ -388,7 +391,7 @@ const pick=()=>{for(let i=0;i<200;i++){const c=2+(rnd()*(W-4)|0),r=2+(rnd()*(H-4
 // Variantes d'ennemis : fonceur (niv. 3+), bouclier (niv. 6+), invocateur (niv. 9+)
 const modFor=(c,r,K)=>{const h=(c*7+r*13+lvl*3)%8;return h===0&&lvl>=3?'charger':h===1&&lvl>=6?'shield':h===2&&lvl>=9?'summoner':''};
 
-const mk=(c,r,b)=>{const K=bm,L=lvl<=12?lvl:12+(lvl-12)*.5,DL=lvl<=12?lvl:12+(lvl-12)*.35,h=Math.round((b?10+L*5:2+L*2)*[1,1.2,2.2,1.6,3,2.8,2.5][K]);return{x:c*T,y:r*T-8,boss:b,kind:K,hp:h,max:h,spd:Math.min([38,38,38,30,24,38,36][K],[14,20,34,12,16,30,28][K]+(b?6:0)+L*[3,4,4,2,2,3,3][K]),dmg:Math.round((b?2+DL:1+DL)*[.9,1,1.6,1.1,1.5,2,1.8][K]),mod:b?'':modFor(c,r,K),hit:0,cd:0,al:0,vx:0,vy:0,w:0,t:0}};
+const mk=(c,r,b)=>{const K=b?bm:ZT[bm][((c*73856093^r*19349663^lvl*83492791)>>>0)%4],L=lvl<=12?lvl:12+(lvl-12)*.5,DL=lvl<=12?lvl:12+(lvl-12)*.35,h=Math.round((b?10+L*5:2+L*2)*[1,1.2,2.2,1.6,3,2.8,2.5][K]);return{x:c*T,y:r*T-8,boss:b,kind:K,hp:h,max:h,spd:Math.min([38,38,38,30,24,38,36][K],[14,20,34,12,16,30,28][K]+(b?6:0)+L*[3,4,4,2,2,3,3][K]),dmg:Math.round((b?2+DL:1+DL)*[.9,1,1.6,1.1,1.5,2,1.8][K]),mod:b?'':modFor(c,r,K),hit:0,cd:0,al:0,vx:0,vy:0,w:0,t:0}};
 const slots=['weapon','armor','ring'];
 for(let k=0;k<10;k++){
   const p=pick();if(!p)continue;const[c,r]=p;
@@ -432,6 +435,7 @@ secR=null;
   map[r][c]='c';chests.push({c,r,open:false,items,sec:true});
   secR={c,r,kc,kr,opened:false,hint:false}}
 }
+if(window.rzPlace)rzPlace();
 }
 
 // ---- Décors ----
@@ -734,7 +738,7 @@ function updEnemies(dt){
 function portalCheck(dt){
   if(train||dg)return;
   if(secR&&!secR.opened&&!secR.hint&&Math.hypot(secR.kc*T+8-(hero.x+8),secR.kr*T+8-(hero.y+10))<44){secR.hint=true;say('Ce rocher fissuré sonne creux… une bombe ?');buzz(15)}
-  if(!portal&&chests.every(k=>k.open||k.sec)){portal={x:(W-2)*T+8,y:endR*T+8,t:0};spawnBoss()}
+  if(!portal&&!rz&&chests.every(k=>k.open||k.sec)){portal={x:(W-2)*T+8,y:endR*T+8,t:0};spawnBoss()}
   if(portal){portal.t+=dt;if(!fb&&Math.hypot(hero.x+8-portal.x,hero.y+11-portal.y)<9){retry=0;sfx(300,900,.3,'sine');const m=levelDone();if(lvl>=20){say(m);noSave=true;try{localStorage.removeItem(SAVE)}catch(e){}showVictory()}else{startLevel(lvl+1);heal(4);say(m)}}}
 }
 function startLevel(n){combatCombo=0;combatComboTimer=0;const ob=bm;lvl=n;dg=null;dgMem=null;dgCd=0;buildLevel();dgDone=false;hero.x=2*T;hero.y=(H-5)*T-8;hero.dir='r';atk=0;parts.length=0;pk.length=0;beams.length=0;bombsL.length=0;hasKey=false;hero.slow=0;fadeT=.8;ban=2.6;fb=null;bul.length=zones.length=pools.length=evs.length=0;dash=dcd=0;state='play';hero.inv=1;if(!train&&n>best){best=n;try{localStorage.setItem('petit-heros-best',n)}catch(e){}}if(pendOpen){const o=pendOpen;pendOpen=null;if(o.lvl===n){(o.open||[]).forEach(i=>{const k=chests[i];if(!k)return;k.open=true;if(k.sec&&secR){secR.opened=true;map[secR.kr][secR.kc]='g'}if(k.boss)enemies=enemies.filter(e=>e!==k.boss)});hasKey=!!o.key;dgDone=!!o.dgd}}say((n>1&&bm!==ob?'Nouveau biome : '+BIO[bm].n+' ! ':'')+'Niveau '+n);save()}
@@ -1886,7 +1890,7 @@ function setMute(m){muted=m;$('mb').textContent=m?'🔇':'🔊';try{localStorage
 $('mb').addEventListener('click',e=>{e.currentTarget.blur();setMute(!muted)});setMute(muted);
 function save(){
   if(noSave||train||state==='dead')return;
-  try{localStorage.setItem(SAVE,JSON.stringify({v:2,lvl,lives,hp:hero.hp,eq,bag,retry,bombs,arrows,gems,up,open:(dg?dg.sv.chests:chests).reduce((a,k,i)=>k.open?a.concat(i):a,[]),key:hasKey,dgd:dgDone,ob:window.objSave?window.objSave():null}))}catch(e){}
+  try{localStorage.setItem(SAVE,JSON.stringify({v:2,lvl,lives,hp:hero.hp,eq,bag,retry,bombs,arrows,gems,up,open:(dg?dg.sv.chests:rz?rz.s.chests:chests).reduce((a,k,i)=>k.open?a.concat(i):a,[]),key:hasKey,dgd:dgDone,ob:window.objSave?window.objSave():null}))}catch(e){}
 }
 function loadGame(){
   try{
@@ -2749,6 +2753,42 @@ const _r3=render;window.render=function(){_r3();
   const t=(OBJ.done?'✅ ':OBJ.fail?'✖ ':'🎯 ')+'Objectif'+(OBJ.done||OBJ.fail?'':prog(OBJ));
   if(objb.textContent!==t){objb.textContent=t;objb.className=OBJ.done?'ok':OBJ.fail?'ko':''}};
 placeObj();
+
+/* ===== v14 : ZONES — routes aux bords de la carte vers d'autres biomes ===== */
+function rzPlace(){
+  RX=[];if(train||rz)return;
+  let s=(Math.imul(lvl,2246822519)+99)>>>0;const h=()=>(s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296;
+  const S=new Set([(H-5)*W+2]),q=[[2,H-5]];
+  while(q.length){const[x,y]=q.pop();for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+a,ny=y+b;if(nx<0||ny<0||nx>=W||ny>=H)continue;const k=ny*W+nx;if(S.has(k)||map[ny][nx]!=='g')continue;S.add(k);q.push([nx,ny])}}
+  [['N',2,1,bm<6?bm+1:bm-1],['S',H-3,-1,(bm+3)%7]].forEach(([k,r,d,to])=>{
+    for(let i=0;i<400;i++){const c=6+(h()*(W-18)|0);
+      if(!S.has(r*W+c)||!S.has((r+2*d)*W+c)||Math.hypot(c-2,r-(H-5))<8)continue;
+      if(chests.some(o=>Math.hypot(o.c-c,o.r-r)<3)||(dgIn&&Math.hypot(dgIn.c-c,dgIn.r-r)<4)||(shop&&Math.hypot(shop.c-c,shop.r-r)<3)||(secR&&Math.hypot(secR.c-c,secR.r-r)<5))continue;
+      RX.push({c,r,k,d,to});break}})}
+window.rzPlace=rzPlace;
+function rzGo(e){
+  const s={map,path,flo,ground,g,total,enemies,chests,portal,endR,bm,fb,dtl,pk:pk.slice(),props:props.slice(),shop,dgIn,secR,doorR,HZ,OBJ,seed,RX,from:e};
+  rzB=e.to;fb=null;buildLevel();rzB=-1;dgIn=null;chests.forEach(k=>{k.key=false});
+  pk.length=0;bombsL.length=0;beams.length=0;bul.length=zones.length=pools.length=evs.length=0;parts.length=0;fxt.length=0;
+  hero.x=3*T;hero.y=(H-5)*T-8;hero.dir='r';atk=0;dash=dcd=0;hero.slow=0;hero.inv=1;
+  OBJ=null;genHz();rz={s};RX=[{c:1,r:H-5,k:'B',d:0,to:s.bm}];rzCd=1.3;mmP=null;fadeT=.8;ban=2.6;
+  sfx(300,700,.3,'sine');say((e.k==='N'?'Route nord':'Route sud')+' : '+BIO[bm].n)}
+function rzLeave(){
+  const s=rz.s;({map,path,flo,ground,g,total,enemies,chests,portal,endR,bm,fb,dtl,shop,dgIn,secR,doorR,HZ,OBJ,seed,RX}=s);
+  props.length=0;s.props.forEach(p=>props.push(p));pk.length=0;s.pk.forEach(p=>pk.push(p));
+  bombsL.length=0;beams.length=0;bul.length=zones.length=pools.length=evs.length=0;parts.length=0;fxt.length=0;
+  rz=null;mmP=null;iv.x=iv.y=0;const e=s.from;hero.x=e.c*T;hero.y=(e.r+2*e.d)*T-8;hero.dir=e.d>0?'d':'u';atk=0;dash=dcd=0;hero.slow=0;hero.inv=1;
+  rzCd=1.5;fadeT=.8;ban=2.6;sfx(300,500,.25,'triangle');say('Retour : '+BIO[bm].n);save()}
+function rzTick(dt){
+  if(rzCd>0)rzCd-=dt;if(rzCd>0||train||dg||state!=='play')return;
+  for(const e of RX)if(Math.hypot(e.c*T+8-(hero.x+8),e.r*T+8-(hero.y+11))<9){rz?rzLeave():rzGo(e);return}}
+const _dgt=dgTick;window.dgTick=function(dt){_dgt(dt);rzTick(dt)};
+const _dd2=dgDraw;window.dgDraw=function(){_dd2();if(dg||train||!RX.length)return;const t=performance.now()/1000;
+  RX.forEach(e=>{const x=e.c*T,y=e.r*T,c=BIO[e.to].g[2];
+    R(x+1,y+14,14,2,'rgba(0,0,0,.25)');R(x+1,y+2,3,13,'#6b4a26');R(x+12,y+2,3,13,'#6b4a26');R(x,y,16,3,'#8a6234');
+    ctx.save();ctx.globalAlpha=.35+.15*Math.sin(t*3);R(x+4,y+3,8,11,c);ctx.restore();
+    if(Math.hypot(x+8-(hero.x+8),y+8-(hero.y+11))<52){const n=(e.k==='N'?'Route nord':e.k==='S'?'Route sud':'Retour')+' · '+BIO[e.to].n;ctx.font='bold 8px monospace';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(n,x+9,y-1);ctx.fillStyle='#ffe9a0';ctx.fillText(n,x+8,y-2)}})};
+const _sl5=startLevel;window.startLevel=function(){rz=null;rzB=-1;RX=[];return _sl5.apply(this,arguments)};
 mkOb();
 })();
 </script>
