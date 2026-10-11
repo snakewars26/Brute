@@ -1840,7 +1840,7 @@ function overlay(){
    else{if(mmP!==path){mmP=path;mmC=document.createElement('canvas');mmC.width=W*2;mmC.height=H*2;const q=mmC.getContext('2d');for(let r=0;r<H;r++)for(let c=0;c<W;c++)if(path[r][c])R(c*2,r*2,2,2,'rgba(220,200,150,.35)',q)}
    ctx.drawImage(mmC,mx,my)}
    const sn=(c,r)=>!FS||FS[r*W+c]===1;
-   chests.forEach(k=>{if(!k.open&&!(k.sec&&secR&&!secR.opened)&&sn(k.c,k.r))R(mx+k.c*2,my+k.r*2,2,2,k.key&&!hasKey?'#fff':'#ffd23f')});if(!train&&!dg&&map[doorR][W-8]==='d'&&sn(W-8,doorR))R(mx+(W-8)*2,my+doorR*2,2,2,'#c87a3a');if(!train&&!dg&&dgIn&&!dgDone&&sn(dgIn.c,dgIn.r))R(mx+dgIn.c*2,my+dgIn.r*2,3,3,'#b58cff');if(!train&&!dg)RX.forEach(e=>R(mx+e.c*2-1,my+e.r*2-1,4,4,e.k==='B'?'#7dff7d':'#4fe3ff'));
+   chests.forEach(k=>{if(!k.open&&!(k.sec&&secR&&!secR.opened)&&sn(k.c,k.r))R(mx+k.c*2,my+k.r*2,2,2,k.key&&!hasKey?'#fff':'#ffd23f')});if(!train&&!dg&&map[doorR][W-8]==='d'&&sn(W-8,doorR))R(mx+(W-8)*2,my+doorR*2,2,2,'#c87a3a');if(!train&&!dg&&dgIn&&!dgDone&&sn(dgIn.c,dgIn.r))R(mx+dgIn.c*2,my+dgIn.r*2,3,3,'#b58cff');if(!train&&!dg)RX.forEach(e=>R(mx+e.c*2-1,my+e.r*2-1,4,4,e.k==='B'?'#7dff7d':'#ff6ad5'));
    enemies.forEach(e=>sn((e.x+8)/16|0,(e.y+10)/16|0)&&R(mx+((e.x+8)/8|0)-1,my+((e.y+10)/8|0)-1,2,2,'#ff4a4a'));
    if(portal&&sn(portal.x/16|0,portal.y/16|0))R(mx+((portal.x)/8|0)-1,my+((portal.y)/8|0)-1,3,3,'#6fe3ff');if(dg)dgMini(mx,my);
    if(fb)R(mx+((fb.x)/8|0)-2,my+((fb.y)/8|0)-2,5,5,Math.floor(performance.now()/200)%2?'#ff2a2a':'#ffb0b0');
@@ -2764,22 +2764,28 @@ placeObj();
 
 /* ===== v14 : ZONES — routes aux bords de la carte vers d'autres biomes ===== */
 function rzPlace(){
-  RX=[];if(train||rz)return;
+  RX=[];if(train||rz||rzB>=0)return;
   let s=(Math.imul(lvl,2246822519)+99)>>>0;const h=()=>(s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296;
   const S=new Set([(H-5)*W+2]),q=[[2,H-5]];
   while(q.length){const[x,y]=q.pop();for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+a,ny=y+b;if(nx<0||ny<0||nx>=W||ny>=H)continue;const k=ny*W+nx;if(S.has(k)||map[ny][nx]!=='g')continue;S.add(k);q.push([nx,ny])}}
-  [['N',2,1,bm<6?bm+1:bm-1],['S',H-3,-1,(bm+3)%7]].forEach(([k,r,d,to])=>{
-    for(let i=0;i<400;i++){const c=6+(h()*(W-18)|0);
-      if(!S.has(r*W+c)||!S.has((r+2*d)*W+c)||Math.hypot(c-2,r-(H-5))<8)continue;
-      if(chests.some(o=>Math.hypot(o.c-c,o.r-r)<3)||(dgIn&&Math.hypot(dgIn.c-c,dgIn.r-r)<4)||(shop&&Math.hypot(shop.c-c,shop.r-r)<3)||(secR&&Math.hypot(secR.c-c,secR.r-r)<5))continue;
-      RX.push({c,r,k,d,to});break}})}
+  // Brèche : 3 cases ouvertes dans la bordure d'arbres (ligne 0 au nord, ligne H-1 au sud) ; on sort en marchant dedans.
+  // Passes de plus en plus souples (largeur de brèche, distances) pour garantir les deux sorties.
+  const P=[[1,8,3,4,3,5],[1,6,2,3,2,4],[0,5,2,2,2,3],[0,4,1,2,1,2]];
+  [['N',0,1,bm<6?bm+1:bm-1],['S',H-1,-1,(bm+3)%7]].forEach(([k,r,d,to])=>{
+    for(const[w,ds,dc,dg_,dsh,dsr]of P){let done=false;
+      for(let i=0;i<300&&!done;i++){const c=4+(h()*(W-8)|0),os=w?[-1,0,1]:[0];
+        if(!os.every(o=>S.has((r+d)*W+c+o))||!S.has((r+2*d)*W+c)||Math.hypot(c-2,r-(H-5))<ds)continue;
+        if(chests.some(o=>Math.hypot(o.c-c,o.r-(r+d))<dc)||(dgIn&&Math.hypot(dgIn.c-c,dgIn.r-(r+d))<dg_)||(shop&&Math.hypot(shop.c-c,shop.r-(r+d))<dsh)||(secR&&Math.hypot(secR.c-c,secR.r-(r+d))<dsr))continue;
+        for(const o of os)map[r][c+o]='g';
+        RX.push({c,r,k,d,to,w:os.length});done=true}
+      if(done)break}})}
 window.rzPlace=rzPlace;
 function rzGo(e){
   const s={map,path,flo,ground,g,total,enemies,chests,portal,endR,bm,fb,dtl,pk:pk.slice(),shop,dgIn,secR,doorR,HZ:hzx.get(),OBJ,seed,RX,from:e};
-  rzB=e.to;fb=null;buildLevel();rzB=-1;dgIn=null;chests.forEach(k=>{k.key=false});
+  rzB=e.to;fb=null;buildLevel();rzB=-1;[H-6,H-4].forEach(r=>{map[r][0]='g'});dgIn=null;chests.forEach(k=>{k.key=false});
   pk.length=0;bombsL.length=0;beams.length=0;bul.length=zones.length=pools.length=evs.length=0;parts.length=0;fxt.length=0;
   hero.x=3*T;hero.y=(H-5)*T-8;hero.dir='r';atk=0;dash=dcd=0;hero.slow=0;hero.inv=1;
-  OBJ=null;hzx.genHz();rz={s};RX=[{c:1,r:H-5,k:'B',d:0,to:s.bm}];rzCd=1.3;mmP=null;fadeT=.8;ban=2.6;
+  OBJ=null;hzx.genHz();rz={s};RX=[{c:0,r:H-5,k:'B',d:0,to:s.bm}];rzCd=1.3;mmP=null;fadeT=.8;ban=2.6;
   sfx(300,700,.3,'sine');say((e.k==='N'?'Route nord':'Route sud')+' : '+BIO[bm].n)}
 function rzLeave(){
   const s=rz.s;({map,path,flo,ground,g,total,enemies,chests,portal,endR,bm,fb,dtl,shop,dgIn,secR,doorR,OBJ,seed,RX}=s);hzx.set(s.HZ);
@@ -2787,17 +2793,19 @@ function rzLeave(){
   bombsL.length=0;beams.length=0;bul.length=zones.length=pools.length=evs.length=0;parts.length=0;fxt.length=0;
   rz=null;mmP=null;hzx.iv.x=hzx.iv.y=0;const e=s.from;hero.x=e.c*T;hero.y=(e.r+2*e.d)*T-8;hero.dir=e.d>0?'d':'u';atk=0;dash=dcd=0;hero.slow=0;hero.inv=1;
   rzCd=1.5;fadeT=.8;ban=2.6;sfx(300,500,.25,'triangle');say('Retour : '+BIO[bm].n);save()}
+function rzHit(e){const hc=(hero.x+8)/T|0,hr=(hero.y+11)/T|0;return e.k==='N'?hr<=0&&Math.abs(hc-e.c)<=(e.w===1?0:1):e.k==='S'?hr>=H-1&&Math.abs(hc-e.c)<=(e.w===1?0:1):hc<=0&&Math.abs(hr-(H-5))<=1}
 function rzTick(dt){
   if(rzCd>0)rzCd-=dt;if(rzCd>0||train||dg||state!=='play')return;
-  for(const e of RX)if(Math.hypot(e.c*T+8-(hero.x+8),e.r*T+8-(hero.y+11))<9){rz?rzLeave():rzGo(e);return}}
+  for(const e of RX)if(rzHit(e)){rz?rzLeave():rzGo(e);return}}
 const _dgt=dgTick;window.dgTick=function(dt){_dgt(dt);rzTick(dt)};
 const _dd2=dgDraw;window.dgDraw=function(){_dd2();if(dg||train||!RX.length)return;const t=performance.now()/1000;
-  RX.forEach(e=>{const x=e.c*T,y=e.r*T,c=BIO[e.to].g[2];
-    const pu=Math.sin(t*3);ctx.save();ctx.globalAlpha=.16+.08*pu;R(x-4,y-3,24,21,'#ffe9a0');ctx.restore();
-    R(x+1,y+14,14,2,'rgba(0,0,0,.25)');R(x+1,y+2,3,13,'#a8742f');R(x+12,y+2,3,13,'#a8742f');R(x,y,16,3,'#d19a4a');R(x-1,y-1,18,1,'#f0c878');
-    R(x+1,y+3,1,2,'#ffd23f');R(x+14,y+3,1,2,'#ffd23f');
-    ctx.save();ctx.globalAlpha=.55+.2*pu;R(x+4,y+3,8,11,c);ctx.restore();
-    if(Math.hypot(x+8-(hero.x+8),y+8-(hero.y+11))<52){const n=(e.k==='N'?'Route nord':e.k==='S'?'Route sud':'Retour')+' · '+BIO[e.to].n;ctx.font='bold 8px monospace';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(n,x+9,y-1);ctx.fillStyle='#ffe9a0';ctx.fillText(n,x+8,y-2)}})};
+  RX.forEach(e=>{const c=BIO[e.to].g[2],pu=Math.sin(t*3),ch=e.k==='N'?'▲':e.k==='S'?'▼':'◀';
+    const gx=e.k==='B'?0:(e.w===1?e.c:e.c-1)*T,gy=(e.k==='B'?e.r-1:e.r)*T,gw=e.k==='B'?T:(e.w===1?1:3)*T,gh=e.k==='B'?3*T:T;
+    ctx.save();ctx.globalAlpha=.22+.1*pu;R(gx,gy,gw,gh,'#ffe9a0');ctx.globalAlpha=.4+.2*pu;R(gx,gy,gw,gh,c);ctx.restore();
+    ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.globalAlpha=.55+.4*pu;
+    if(e.k==='B'){for(let o=0;o<3;o++)ctx.fillText(ch,gx+8,gy+o*T+12)}else for(let o=(e.w===1?0:-1);o<=(e.w===1?0:1);o++)ctx.fillText(ch,(e.c+o)*T+8,gy+12);ctx.globalAlpha=1;
+    const cx=e.k==='B'?T+14:e.c*T+8,ly=e.k==='N'?gy+T+14:e.k==='S'?gy-6:gy-4;
+    if(Math.hypot(cx-(hero.x+8),gy+gh/2-(hero.y+11))<90){const n=(e.k==='N'?'Route nord':e.k==='S'?'Route sud':'Retour')+' · '+BIO[e.to].n;ctx.font='bold 8px monospace';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(n,cx+1,ly+1);ctx.fillStyle='#ffe9a0';ctx.fillText(n,cx,ly)}})};
 const _sl5=startLevel;window.startLevel=function(){rz=null;rzB=-1;RX=[];return _sl5.apply(this,arguments)};
 mkOb();
 })();
