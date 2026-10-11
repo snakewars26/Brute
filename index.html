@@ -1886,7 +1886,7 @@ function setMute(m){muted=m;$('mb').textContent=m?'🔇':'🔊';try{localStorage
 $('mb').addEventListener('click',e=>{e.currentTarget.blur();setMute(!muted)});setMute(muted);
 function save(){
   if(noSave||train||state==='dead')return;
-  try{localStorage.setItem(SAVE,JSON.stringify({v:2,lvl,lives,hp:hero.hp,eq,bag,retry,bombs,arrows,gems,up,open:(dg?dg.sv.chests:chests).reduce((a,k,i)=>k.open?a.concat(i):a,[]),key:hasKey,dgd:dgDone}))}catch(e){}
+  try{localStorage.setItem(SAVE,JSON.stringify({v:2,lvl,lives,hp:hero.hp,eq,bag,retry,bombs,arrows,gems,up,open:(dg?dg.sv.chests:chests).reduce((a,k,i)=>k.open?a.concat(i):a,[]),key:hasKey,dgd:dgDone,ob:window.objSave?window.objSave():null}))}catch(e){}
 }
 function loadGame(){
   try{
@@ -2649,7 +2649,7 @@ const _rd=render;window.render=function(){_rd();
 // ---- Boucle : pouvoirs, glace, dangers, secrets ----
 const _up=update;window.update=function(dt){
   if(state!=='play')return _up(dt);
-  const px=hero.x,py=hero.y,pcb=combatCombo;_up(dt);if(state!=='play'||train)return;
+  const px=hero.x,py=hero.y;_up(dt);if(state!=='play'||train)return;
   const w=eq.weapon&&eq.weapon.leg,rg=eq.ring&&eq.ring.leg;let kill=false;
   for(const e of enemies){if(e.dummy)continue;
     if(e.hit>=.15&&(e._h||0)<.15){if(w==='fire'){e.burn=3;e.bt=.5}else if(w==='ice')e.frz=2.5;else if(w==='bolt'){if(zap(e))kill=true}}e._h=e.hit;
@@ -2708,15 +2708,22 @@ const sv=()=>{try{localStorage.setItem('petit-heros-ach',JSON.stringify(A))}catc
 ACH.push(['ob5',"🎯 Chasseur d'objectifs : 5 réussis",()=>(A.ob||0)>=5]);
 function mkOb(){OBJ=null;if(train||lvl<2)return;
   const n=enemies.filter(e=>!e.dummy).length,L=['pot','combo'];if(secR&&!secR.opened)L.push('sec');if(n>=5)L.push('kill');
-  const k=L[lvl%L.length],o={k,done:false,fail:false,p:0,r:6+lvl};
+  const k=L[lvl%L.length],o={k,done:false,fail:false,p:0,r:6+lvl,lvl};
   if(k==='combo'){o.t=2+(lvl/7|0);o.c0=perfN}if(k==='kill'){o.t=Math.max(3,Math.ceil(n*.6));o.k0=run.kills}
   OBJ=o}
 function reward(){if(!OBJ||OBJ.done)return;OBJ.done=true;gems+=OBJ.r;A.ob=(A.ob||0)+1;sv();sfx(600,1300,.25,'triangle',.05);say('🎯 Objectif réussi ! +'+OBJ.r+'💎');save()}
-const _sl3=startLevel;window.startLevel=function(){const r=_sl3.apply(this,arguments);mkOb();return r};
+window.objSave=()=>OBJ?{lvl:OBJ.lvl,k:OBJ.k,p:OBJ.p|0,t:OBJ.t|0,done:!!OBJ.done,fail:!!OBJ.fail}:null;
+function restoreOb(po){const b=po&&po.ob;if(!OBJ||!b||b.lvl!==lvl||!['pot','combo','sec','kill'].includes(b.k))return;
+  const p=Math.max(0,Math.min(999,Number.isFinite(b.p)?b.p|0:0));
+  const o={k:b.k,done:!!b.done,fail:!!b.fail,p,r:6+lvl,lvl};
+  if(b.k==='combo'){o.t=2+(lvl/7|0);o.c0=perfN-p}
+  if(b.k==='kill'){o.t=Math.max(3,Math.min(999,Number.isFinite(b.t)?b.t|0:3));o.k0=run.kills-p}
+  OBJ=o}
+const _sl3=startLevel;window.startLevel=function(){const po=pendOpen;const r=_sl3.apply(this,arguments);mkOb();restoreOb(po);save();return r};
 const _dr=drink;window.drink=function(n){if(OBJ&&OBJ.k==='pot'&&!OBJ.done)OBJ.fail=true;return _dr(n)};
 const _ld2=levelDone;window.levelDone=function(){let m=_ld2();
   if(OBJ&&!train&&OBJ.k==='pot'&&!OBJ.done&&!OBJ.fail){OBJ.done=true;gems+=OBJ.r;A.ob=(A.ob||0)+1;sv();m+=' · 🎯 +'+OBJ.r+'💎'}return m};
-const _u3=update;window.update=function(dt){const pcb=combatCombo;_u3(dt);
+const _u3=update;window.update=function(dt){_u3(dt);
   if(!OBJ||OBJ.done||train||state!=='play')return;
   if(OBJ.k==='combo'){OBJ.p=perfN-OBJ.c0;if(OBJ.p>=OBJ.t)reward()}
   else if(OBJ.k==='kill'){OBJ.p=Math.max(0,run.kills-OBJ.k0);if(OBJ.p>=OBJ.t)reward()}
