@@ -671,7 +671,7 @@ function levelDone(){const s=Math.round(run.t),k=run.kills,h=run.hits;let m='Niv
 function burst(x,y,cols,n=10){for(let i=0;i<n;i++)parts.push({x,y,vx:(rnd()-.5)*90,vy:-rnd()*70-10,l:.5+rnd()*.3,c:cols[rnd()*cols.length|0]})}
 
 // ---- Combat ----
-let combatCombo=0,combatComboTimer=0;
+let combatCombo=0,combatComboTimer=0,perfN=0;
 function slash(){
   combatComboTimer=1.8;
   const v=DIRS[hero.dir],cx=hero.x+8,cy=hero.y+10,ax=cx+v[0]*13,ay=cy+v[1]*13;
@@ -681,11 +681,11 @@ function slash(){
     if(Math.abs(ex-ax)<14&&Math.abs(ey-ay)<14){
       const d=Math.hypot(ex-cx,ey-cy)||1;
       const baseDmg=Math.max(1,stat().atk);combatCombo=Math.min(4,combatCombo+1);const comboDmg=baseDmg*(combatCombo===4?1.75:combatCombo===3?1.2:1);{const bl=shUp(e);e.hp-=bl?Math.max(1,Math.round(comboDmg*.2)):Math.round(comboDmg);e.hit=.2;if(bl){sfx(900,500,.07,'square',.05);burst(ex,ey,['#7fb4ff','#fff'],5);if(msgT<=0)say('🛡️ Bouclier levé : attends, ou lance une bombe')}else sfx(combatCombo===4?420:200,70,.09,'square',.05)}e.vx=(ex-cx)/d*110;e.vy=(ey-cy)/d*110;
-      dmgFx(e.x+8,e.y,Math.round(comboDmg),combatCombo===4?'#ffe97a':e.dummy?'#ffe97a':'#fff');if(combatCombo===4){burst(ex,ey,['#ffe97a','#fff','#ffb03a'],10);say('Combo parfait !');combatCombo=0}if(e.dummy){e.hp=e.max;e.vx=e.vy=0}
+      dmgFx(e.x+8,e.y,Math.round(comboDmg),combatCombo===4?'#ffe97a':e.dummy?'#ffe97a':'#fff');if(combatCombo===4){burst(ex,ey,['#ffe97a','#fff','#ffb03a'],10);say('Combo parfait !');perfN++;if(eq.armor&&eq.armor.leg==='heal'&&hero.hp<stat().max)heal(1);combatCombo=0}if(e.dummy){e.hp=e.max;e.vx=e.vy=0}
       if(e.hp<=0)dieFx(e);
     }
   });
-  if(fb&&Math.hypot(fb.x-ax,fb.y-ay)<fb.r+10){const baseDmg=Math.max(1,stat().atk);combatCombo=Math.min(4,combatCombo+1);const a=Math.round(baseDmg*(combatCombo===4?1.75:combatCombo===3?1.2:1));fb.hp-=a;fb.hit=.15;sfx(160,50,.1,'square',.05);dmgFx(fb.x+(rnd()-.5)*24,fb.y-fb.r,a,combatCombo===4?'#ffe97a':'#fff');burst(ax,ay,[BCOL[fb.k],'#fff'],combatCombo===4?12:5);if(combatCombo===4){say('Combo parfait !');combatCombo=0}if(fb.hp<=0)killBoss()}
+  if(fb&&Math.hypot(fb.x-ax,fb.y-ay)<fb.r+10){const baseDmg=Math.max(1,stat().atk);combatCombo=Math.min(4,combatCombo+1);const a=Math.round(baseDmg*(combatCombo===4?1.75:combatCombo===3?1.2:1));fb.hp-=a;fb.hit=.15;sfx(160,50,.1,'square',.05);dmgFx(fb.x+(rnd()-.5)*24,fb.y-fb.r,a,combatCombo===4?'#ffe97a':'#fff');burst(ax,ay,[BCOL[fb.k],'#fff'],combatCombo===4?12:5);if(combatCombo===4){say('Combo parfait !');perfN++;if(eq.armor&&eq.armor.leg==='heal'&&hero.hp<stat().max)heal(1);combatCombo=0}if(fb.hp<=0)killBoss()}
   enemies=enemies.filter(e=>e.hp>0);
   [-6,0,6].forEach(o=>{
     const px=ax+(v[0]?0:o),py=ay+(v[0]?o:0),c=Math.floor(px/T),r=Math.floor(py/T);
@@ -2657,8 +2657,7 @@ const _up=update;window.update=function(dt){
     if(e.burn>0){e.burn-=dt;e.bt-=dt;if(R_()<.25)parts.push({x:e.x+4+R_()*8,y:e.y+6,vx:0,vy:-20,g:0,s:2,l:.35,c:R_()<.5?'#ff8a3a':'#ffd23a'});
       if(e.bt<=0){e.bt=.5;const d=Math.max(1,Math.round(stat().atk*.2));e.hp-=d;dmgFx(e.x+8,e.y,d,'#ff8a3a');if(e.hp<=0){dieFx(e);kill=true}}}}
   if(kill)enemies=enemies.filter(e=>e.hp>0);
-  if(pcb===3&&combatCombo===0&&combatComboTimer>0&&eq.armor&&eq.armor.leg==='heal'&&hero.hp<stat().max)heal(1);
-  if(rg==='regen'){rgT+=dt;if(rgT>=12){rgT=0;if(hero.hp>0&&hero.hp<stat().max)heal(1)}}else rgT=0;
+    if(rg==='regen'){rgT+=dt;if(rgT>=12){rgT=0;if(hero.hp>0&&hero.hp<stat().max)heal(1)}}else rgT=0;
   if(rg==='coin')for(const p of pk)if(p.k==='g'){const dx=hero.x+8-p.x,dy=hero.y+10-p.y,d=Math.hypot(dx,dy);if(d<90&&d>1){p.x+=dx/d*110*dt;p.y+=dy/d*110*dt}}
   if(bm===6&&!dg&&dash<=0){const vx=(hero.x-px)/dt,vy=(hero.y-py)/dt,k=Math.min(1,dt*3.5),f=Math.max(0,1-dt*1.6);
     if(hero.moving){iv.x+=(vx-iv.x)*k;iv.y+=(vy-iv.y)*k}else{iv.x*=f;iv.y*=f}
@@ -2710,7 +2709,7 @@ ACH.push(['ob5',"🎯 Chasseur d'objectifs : 5 réussis",()=>(A.ob||0)>=5]);
 function mkOb(){OBJ=null;if(train||lvl<2)return;
   const n=enemies.filter(e=>!e.dummy).length,L=['pot','combo'];if(secR&&!secR.opened)L.push('sec');if(n>=5)L.push('kill');
   const k=L[lvl%L.length],o={k,done:false,fail:false,p:0,r:6+lvl};
-  if(k==='combo')o.t=2+(lvl/7|0);if(k==='kill'){o.t=Math.max(3,Math.ceil(n*.6));o.k0=run.kills}
+  if(k==='combo'){o.t=2+(lvl/7|0);o.c0=perfN}if(k==='kill'){o.t=Math.max(3,Math.ceil(n*.6));o.k0=run.kills}
   OBJ=o}
 function reward(){if(!OBJ||OBJ.done)return;OBJ.done=true;gems+=OBJ.r;A.ob=(A.ob||0)+1;sv();sfx(600,1300,.25,'triangle',.05);say('🎯 Objectif réussi ! +'+OBJ.r+'💎');save()}
 const _sl3=startLevel;window.startLevel=function(){const r=_sl3.apply(this,arguments);mkOb();return r};
@@ -2719,7 +2718,7 @@ const _ld2=levelDone;window.levelDone=function(){let m=_ld2();
   if(OBJ&&!train&&OBJ.k==='pot'&&!OBJ.done&&!OBJ.fail){OBJ.done=true;gems+=OBJ.r;A.ob=(A.ob||0)+1;sv();m+=' · 🎯 +'+OBJ.r+'💎'}return m};
 const _u3=update;window.update=function(dt){const pcb=combatCombo;_u3(dt);
   if(!OBJ||OBJ.done||train||state!=='play')return;
-  if(OBJ.k==='combo'){if(pcb===3&&combatCombo===0&&combatComboTimer>0){OBJ.p++;if(OBJ.p>=OBJ.t)reward()}}
+  if(OBJ.k==='combo'){OBJ.p=perfN-OBJ.c0;if(OBJ.p>=OBJ.t)reward()}
   else if(OBJ.k==='kill'){OBJ.p=Math.max(0,run.kills-OBJ.k0);if(OBJ.p>=OBJ.t)reward()}
   else if(OBJ.k==='sec'&&secR&&secR.opened)reward()};
 const css=document.createElement('style');css.textContent='#objb{position:fixed;z-index:4;display:none;align-items:center;height:26px;padding:0 8px;border-radius:6px;font:bold 12px system-ui,sans-serif;white-space:nowrap;color:#ffe97a;background:var(--hud-glass);border:1px solid var(--hud-edge);filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}#objb.ok{color:#7dff9a}#objb.ko{color:#ff8a8a}';document.head.appendChild(css);
